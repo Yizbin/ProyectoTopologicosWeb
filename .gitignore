@@ -1,0 +1,40 @@
+# Dependencias
+node_modules/
+
+# Archivos compilados
+dist/
+build/
+out/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+*.log
+
+# Variables de entorno (seguridad)
+.env
+.env.test
+.env.production
+.env.local
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Configuración de Editores / IDEs
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Archivos de pruebas y cobertura
+coverage/
+.nyc_output/
+
+# Archivos temporales de NestJS
+.nest/
