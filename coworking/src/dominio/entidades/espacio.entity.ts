@@ -1,6 +1,6 @@
 export enum TipoEspacio {
     SALA = "Sala",
-    CUBICULO = "Cubículo",
+    CUBICULO = "Cubiculo",
     PC = "PC"
 }
 
@@ -12,6 +12,6 @@ export class Espacio {
         public tipo: TipoEspacio,
         public costoPorHora: number,
         public activo: boolean,
-        public duracionMinutos: number // bloques de disponibilidad
+        public duracionMinutos: number // bloques de disponibilidad (osea cada cuanto tiempo esta disponible un horario nuevo para reservar)
     ) {}
 }
