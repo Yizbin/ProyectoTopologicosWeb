@@ -7,7 +7,7 @@ export class DominioError extends Error {
 
 export class EmpalmeReservacionError extends DominioError {
     constructor() { 
-        super("No se puede completar la reservacion: Ya existe otra reservacion confirmada o pendiente en este horario."); 
+        super("No se puede completar la reservacion: Ya existe otra reservacion que ocupa este horario."); 
     }
 }
 
@@ -17,8 +17,8 @@ export class BloqueoAdministrativoError extends DominioError {
     }
 }
 
-export class HorarioOperacionError extends DominioError {
+export class FueraDeHorarioError extends DominioError {
     constructor() { 
-        super("No se puede agendar el espacio: El horario solicitado esta fuera de los dias y horas de atencion."); 
+        super("No se puede agendar el espacio: El horario solicitado esta fuera de los dias y horas de atencion configurados."); 
     }
 }
