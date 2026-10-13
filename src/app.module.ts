@@ -6,6 +6,7 @@ import { UsuariosModule } from './usuarios/usuarios.module.js';
 import { EspaciosModule } from './espacios/espacios.module.js';
 import { ReservacionesModule } from './reservaciones/reservaciones.module.js';
 import { PagosModule } from './pagos/pagos.module.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -18,6 +19,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
       appSecret: 'YOUR_APP_SECRET',
       serviceId: 'sistema-reservas',
     }),
+    PrismaModule,
     UsuariosModule,
     EspaciosModule,
     ReservacionesModule,
