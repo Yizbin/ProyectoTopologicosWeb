@@ -1,0 +1,149 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum RolUsuario {
+  CLIENTE
+  ADMIN
+}
+
+enum TipoEspacio {
+  SALA     @map("Sala")
+  CUBICULO @map("Cubiculo")
+  PC       @map("PC")
+}
+
+enum EstadoReservacion {
+  PENDIENTE  @map("pendiente")
+  CONFIRMADA @map("confirmada")
+  CANCELADA  @map("cancelada")
+  COMPLETADA @map("completada")
+}
+
+enum MetodoPago {
+  EFECTIVO
+  TARJETA
+}
+
+enum EstadoPago {
+  PENDIENTE
+  COMPLETADO
+  REEMBOLSADO
+}
+
+model Usuario {
+  id                 String        @id @default(uuid())
+  nombre             String
+  correo             String        @unique
+  telefono           String
+  contrasena         String
+  rol                RolUsuario    @default(CLIENTE)
+  fechaCreacion      DateTime      @default(now())
+  fechaActualizacion DateTime      @updatedAt
+
+  reservaciones      Reservacion[]
+
+  @@map("usuarios")
+}
+
+model Sede {
+  id                   String    @id @default(uuid())
+  nombre               String
+  direccion            String
+  telefonoActivo       String
+  horaAperturaGeneral  String
+  horaCierreGeneral    String
+
+  espacios             Espacio[]
+
+  @@map("sedes")
+}
+
+model Espacio {
+  id                 String            @id @default(uuid())
+  nombre             String
+  descripcion        String            @db.Text
+  tipo               TipoEspacio
+  costoPorHora       Float
+  activo             Boolean           @default(true)
+  duracionMinutos    Int
+  sedeId             String
+  capacidadMaxima    Int
+  amenidades         Json
+  minimoHorasReserva Int
+  maximoHorasReserva Int
+  fechaCreacion      DateTime          @default(now())
+  fechaActualizacion DateTime          @updatedAt
+
+  sede               Sede              @relation(fields: [sedeId], references: [id], onDelete: Cascade)
+  horarios           HorarioAtencion[]
+  bloqueos           Bloqueo[]
+  reservaciones      Reservacion[]
+
+  @@map("espacios")
+}
+
+model HorarioAtencion {
+  id           String  @id @default(uuid())
+  diaSemana    Int
+  horaApertura String
+  horaCierre   String
+  espacioId    String
+
+  espacio      Espacio @relation(fields: [espacioId], references: [id], onDelete: Cascade)
+
+  @@map("horarios_atencion")
+}
+
+model Bloqueo {
+  id          String   @id @default(uuid())
+  fechaInicio DateTime
+  fechaFin    DateTime
+  horaInicio  String
+  horaFin     String
+  motivo      String
+  espacioId   String
+  activo      Boolean  @default(true)
+
+  espacio     Espacio  @relation(fields: [espacioId], references: [id], onDelete: Cascade)
+
+  @@map("bloqueos")
+}
+
+model Pago {
+  id          String      @id @default(uuid())
+  montoTotal  Float
+  estado      EstadoPago  @default(PENDIENTE)
+  metodo      MetodoPago?
+  referencia  String?
+
+  reservacion Reservacion?
+
+  @@map("pagos")
+}
+
+model Reservacion {
+  id               String            @id @default(uuid())
+  fecha            DateTime
+  horaInicio       String
+  horaFin          String
+  estado           EstadoReservacion @default(PENDIENTE)
+  espacioId        String
+  usuarioId        String
+  pagoId           String?           @unique
+  cantidadPersonas Int
+  subtotal         Float
+
+  espacio          Espacio           @relation(fields: [espacioId], references: [id], onDelete: Cascade)
+  usuario          Usuario           @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  pago             Pago?             @relation(fields: [pagoId], references: [id], onDelete: SetNull)
+
+  @@index([espacioId, fecha])
+  @@index([usuarioId])
+  @@map("reservaciones")
+}
