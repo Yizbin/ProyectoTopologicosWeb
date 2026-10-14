@@ -28,7 +28,7 @@ export class ReservacionesController {
   @UseGuards(JwtAuthGuard)
   async crearReservacion(@Body() dto: CrearReservacionDto): Promise<Reservacion> {
     const id = dto.id ?? randomUUID();
-    const pagoId = dto.pagoId ?? randomUUID();
+    const pagoId = dto.pagoId ?? '';
 
     const nuevaReservacion = new Reservacion(
       id,

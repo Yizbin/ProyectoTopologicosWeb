@@ -9,39 +9,6 @@ export class ReservacionPrismaRepository implements IReservacionRepository {
   constructor(private readonly prisma: PrismaService) { }
 
   async guardar(reservacion: Reservacion): Promise<void> {
-    if (reservacion.usuarioId) {
-      const usuarioExiste = await this.prisma.usuario.findUnique({
-        where: { id: reservacion.usuarioId },
-      });
-      if (!usuarioExiste) {
-        await this.prisma.usuario.create({
-          data: {
-            id: reservacion.usuarioId,
-            nombre: 'Usuario Temporal',       // DATOS ASI PARA QUE EL MAIN DE AVANCES 1 SIGA FUNCIONANDO
-            correo: `${reservacion.usuarioId}@sistema.local`,
-            telefono: '000-000-0000',
-            contrasena: 'temporal123',
-            rol: 'CLIENTE',
-          },
-        });
-      }
-    }
-
-    if (reservacion.pagoId) {
-      const pagoExiste = await this.prisma.pago.findUnique({
-        where: { id: reservacion.pagoId },
-      });
-      if (!pagoExiste) {
-        await this.prisma.pago.create({
-          data: {
-            id: reservacion.pagoId,
-            montoTotal: reservacion.subtotal,
-            estado: 'PENDIENTE',
-          },
-        });
-      }
-    }
-
     await this.prisma.reservacion.create({
       data: {
         id: reservacion.id,
