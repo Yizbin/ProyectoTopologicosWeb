@@ -104,6 +104,10 @@ export class ReservacionesService {
         return this.reservacionRepo.obtenerPorUsuarioId(usuarioId);
     }
 
+    async obtenerPorId(id: string): Promise<Reservacion | null> {
+        return this.reservacionRepo.obtenerPorId(id);
+    }
+
     private hayEmpalme(inicioA: string, finA: string, inicioB: string, finB: string): boolean {
         return inicioA < finB && finA > inicioB;
     }
