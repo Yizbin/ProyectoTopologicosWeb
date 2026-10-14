@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   NotFoundException,
+  UseGuards,
 } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import { ReservacionesService } from './reservaciones.service.js';
@@ -14,12 +15,17 @@ import {
   Reservacion,
   EstadoReservacion,
 } from '../dominio/entidades/reservacion.entity.js';
+import { RolUsuario } from '../dominio/entidades/usuario.entity.js';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 
 @Controller('reservaciones')
 export class ReservacionesController {
   constructor(private readonly reservacionesService: ReservacionesService) {}
 
   @Post()
+  @UseGuards(JwtAuthGuard)
   async crearReservacion(@Body() dto: CrearReservacionDto): Promise<Reservacion> {
     const id = dto.id ?? randomUUID();
     const pagoId = dto.pagoId ?? randomUUID();
@@ -43,6 +49,7 @@ export class ReservacionesController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   async obtenerPorId(@Param('id') id: string): Promise<Reservacion> {
     const reservacion = await this.reservacionesService.obtenerPorId(id);
     if (!reservacion) {
@@ -52,6 +59,7 @@ export class ReservacionesController {
   }
 
   @Get('cliente/:usuarioId')
+  @UseGuards(JwtAuthGuard)
   async obtenerHistorialCliente(
     @Param('usuarioId') usuarioId: string,
   ): Promise<Reservacion[]> {
@@ -59,6 +67,8 @@ export class ReservacionesController {
   }
 
   @Patch(':id/confirmar')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
   async confirmar(@Param('id') id: string): Promise<{ mensaje: string; reservacion: Reservacion | null }> {
     await this.reservacionesService.confirmarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
@@ -69,6 +79,8 @@ export class ReservacionesController {
   }
 
   @Patch(':id/completar')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
   async completar(@Param('id') id: string): Promise<{ mensaje: string; reservacion: Reservacion | null }> {
     await this.reservacionesService.completarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
@@ -79,6 +91,7 @@ export class ReservacionesController {
   }
 
   @Patch(':id/cancelar')
+  @UseGuards(JwtAuthGuard)
   async cancelar(@Param('id') id: string): Promise<{ mensaje: string; reservacion: Reservacion | null }> {
     await this.reservacionesService.cancelarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);

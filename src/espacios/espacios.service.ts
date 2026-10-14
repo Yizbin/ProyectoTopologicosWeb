@@ -7,6 +7,7 @@ import { Bloqueo } from '../dominio/entidades/bloqueo.entity.js';
 import { ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CrearEspacioDto } from './dto/crear-espacio.dto.js';
+import { CrearBloqueoDto } from './dto/crear-bloqueo.dto.js';
 
 @Injectable()
 export class EspaciosService {
@@ -97,6 +98,35 @@ export class EspaciosService {
   async obtenerBloqueos(espacioId: string, fecha: Date): Promise<Bloqueo[]> {
     await this.obtenerEspacioPorId(espacioId);
     return this.espacioRepo.obtenerBloqueosPorEspacioYFecha(espacioId, fecha);
+  }
+
+  async crearBloqueo(espacioId: string, dto: CrearBloqueoDto): Promise<Bloqueo> {
+    await this.obtenerEspacioPorId(espacioId);
+
+    const id = dto.id ?? randomUUID();
+    const row = await this.prisma.bloqueo.create({
+      data: {
+        id,
+        fechaInicio: new Date(dto.fechaInicio),
+        fechaFin: new Date(dto.fechaFin),
+        horaInicio: dto.horaInicio,
+        horaFin: dto.horaFin,
+        motivo: dto.motivo,
+        espacioId,
+        activo: dto.activo ?? true,
+      },
+    });
+
+    return new Bloqueo(
+      row.id,
+      row.fechaInicio,
+      row.fechaFin,
+      row.horaInicio,
+      row.horaFin,
+      row.motivo,
+      row.espacioId,
+      row.activo,
+    );
   }
 
   private mapDominioAPrismaTipo(tipo: TipoEspacio): 'SALA' | 'CUBICULO' | 'PC' {
