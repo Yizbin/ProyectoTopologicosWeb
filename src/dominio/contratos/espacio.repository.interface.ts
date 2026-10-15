@@ -5,7 +5,11 @@ import { Sede } from '../entidades/sede.entity.js';
 
 export interface IEspacioRepository {
     obtenerEspacioPorId(id: string): Promise<Espacio | null>;
+    listarEspacios(activoSolo?: boolean): Promise<Espacio[]>;
+    guardarEspacio(espacio: Espacio): Promise<void>;
     obtenerHorariosPorEspacioYDia(espacioId: string, diaSemana: number): Promise<HorarioAtencion[]>;
     obtenerBloqueosPorEspacioYFecha(espacioId: string, fecha: Date): Promise<Bloqueo[]>;
+    obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]>;
+    guardarBloqueo(bloqueo: Bloqueo): Promise<void>;
     obtenerSedePorId(id: string): Promise<Sede | null>;
 }

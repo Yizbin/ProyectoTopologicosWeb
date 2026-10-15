@@ -33,4 +33,18 @@ export class ReservacionMemoryRepository implements IReservacionRepository {
     async obtenerPorUsuarioId(usuarioId: string): Promise<Reservacion[]> {
         return this.reservaciones.filter(r => r.usuarioId === usuarioId);
     }
+
+    async obtenerTodas(): Promise<Reservacion[]> {
+        return [...this.reservaciones];
+    }
+
+    async obtenerPorRangoFechas(fechaInicio: Date, fechaFin: Date, espacioId?: string): Promise<Reservacion[]> {
+        const tInicio = fechaInicio.getTime();
+        const tFin = fechaFin.getTime();
+        return this.reservaciones.filter(r => {
+            const t = r.fecha.getTime();
+            const coincideEspacio = espacioId ? r.espacioId === espacioId : true;
+            return coincideEspacio && t >= tInicio && t <= tFin;
+        });
+    }
 }

@@ -1,9 +1,14 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { IEspacioRepository } from '../dominio/contratos/espacio.repository.interface.js';
-import { Espacio, TipoEspacio } from '../dominio/entidades/espacio.entity.js';
+import { Espacio } from '../dominio/entidades/espacio.entity.js';
 import { HorarioAtencion } from '../dominio/entidades/horario-atencion.entity.js';
 import { Bloqueo } from '../dominio/entidades/bloqueo.entity.js';
+import {
+  RangoHorasReservaInvalidoError,
+  HoraInvalidaError,
+  EspacioNoEncontradoError,
+} from '../dominio/errores/dominio.errors.js';
 import { ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CrearEspacioDto } from './dto/crear-espacio.dto.js';
@@ -17,6 +22,12 @@ export class EspaciosService {
   ) { }
 
   async crearEspacio(dto: CrearEspacioDto): Promise<Espacio> {
+    if (dto.minimoHorasReserva > dto.maximoHorasReserva) {
+      throw new RangoHorasReservaInvalidoError(
+        `El mínimo de horas de reserva (${dto.minimoHorasReserva}h) no puede ser mayor al máximo de horas (${dto.maximoHorasReserva}h).`,
+      );
+    }
+
     const id = dto.id ?? randomUUID();
 
     const sede = await this.espacioRepo.obtenerSedePorId(dto.sedeId);
@@ -33,53 +44,35 @@ export class EspaciosService {
       });
     }
 
-    await this.prisma.espacio.create({
-      data: {
-        id,
-        nombre: dto.nombre,
-        descripcion: dto.descripcion,
-        tipo: this.mapDominioAPrismaTipo(dto.tipo),
-        costoPorHora: dto.costoPorHora,
-        activo: dto.activo ?? true,
-        duracionMinutos: dto.duracionMinutos,
-        sedeId: dto.sedeId,
-        capacidadMaxima: dto.capacidadMaxima,
-        amenidades: dto.amenidades,
-        minimoHorasReserva: dto.minimoHorasReserva,
-        maximoHorasReserva: dto.maximoHorasReserva,
-      },
-    });
+    const amenidades = Array.isArray(dto.amenidades)
+      ? dto.amenidades
+      : typeof dto.amenidades === 'string'
+        ? JSON.parse(dto.amenidades)
+        : [];
+
+    const nuevoEspacio = new Espacio(
+      id,
+      dto.nombre,
+      dto.descripcion,
+      dto.tipo,
+      dto.costoPorHora,
+      dto.activo ?? true,
+      dto.duracionMinutos,
+      dto.sedeId,
+      dto.capacidadMaxima,
+      amenidades,
+      dto.minimoHorasReserva,
+      dto.maximoHorasReserva,
+    );
+
+    await this.espacioRepo.guardarEspacio(nuevoEspacio);
 
     const creado = await this.espacioRepo.obtenerEspacioPorId(id);
-    return creado!;
+    return creado ?? nuevoEspacio;
   }
 
   async listarEspacios(activoSolo = true): Promise<Espacio[]> {
-    const rows = await this.prisma.espacio.findMany({
-      where: activoSolo ? { activo: true } : undefined,
-    });
-
-    return rows.map(
-      (row) =>
-        new Espacio(
-          row.id,
-          row.nombre,
-          row.descripcion,
-          row.tipo as TipoEspacio,
-          row.costoPorHora,
-          row.activo,
-          row.duracionMinutos,
-          row.sedeId,
-          row.capacidadMaxima,
-          Array.isArray(row.amenidades)
-            ? (row.amenidades as string[])
-            : typeof row.amenidades === 'string'
-              ? JSON.parse(row.amenidades)
-              : [],
-          row.minimoHorasReserva,
-          row.maximoHorasReserva,
-        ),
-    );
+    return this.espacioRepo.listarEspacios(activoSolo);
   }
 
   async obtenerEspacioPorId(id: string): Promise<Espacio> {
@@ -101,43 +94,34 @@ export class EspaciosService {
   }
 
   async crearBloqueo(espacioId: string, dto: CrearBloqueoDto): Promise<Bloqueo> {
-    await this.obtenerEspacioPorId(espacioId);
+    const espacio = await this.espacioRepo.obtenerEspacioPorId(espacioId);
+    if (!espacio) {
+      throw new EspacioNoEncontradoError(`El espacio con ID ${espacioId} no fue encontrado.`);
+    }
+
+    const fInicio = new Date(dto.fechaInicio);
+    const fFin = new Date(dto.fechaFin);
+    if (fFin < fInicio) {
+      throw new HoraInvalidaError('La fecha de fin del bloqueo no puede ser anterior a la fecha de inicio.');
+    }
+
+    if (dto.fechaInicio === dto.fechaFin && dto.horaFin <= dto.horaInicio) {
+      throw new HoraInvalidaError('La hora de fin del bloqueo debe ser estrictamente posterior a la hora de inicio.');
+    }
 
     const id = dto.id ?? randomUUID();
-    const row = await this.prisma.bloqueo.create({
-      data: {
-        id,
-        fechaInicio: new Date(dto.fechaInicio),
-        fechaFin: new Date(dto.fechaFin),
-        horaInicio: dto.horaInicio,
-        horaFin: dto.horaFin,
-        motivo: dto.motivo,
-        espacioId,
-        activo: dto.activo ?? true,
-      },
-    });
-
-    return new Bloqueo(
-      row.id,
-      row.fechaInicio,
-      row.fechaFin,
-      row.horaInicio,
-      row.horaFin,
-      row.motivo,
-      row.espacioId,
-      row.activo,
+    const nuevoBloqueo = new Bloqueo(
+      id,
+      fInicio,
+      fFin,
+      dto.horaInicio,
+      dto.horaFin,
+      dto.motivo,
+      espacioId,
+      dto.activo ?? true,
     );
-  }
 
-  private mapDominioAPrismaTipo(tipo: TipoEspacio): 'SALA' | 'CUBICULO' | 'PC' {
-    switch (tipo) {
-      case TipoEspacio.CUBICULO:
-        return 'CUBICULO';
-      case TipoEspacio.PC:
-        return 'PC';
-      case TipoEspacio.SALA:
-      default:
-        return 'SALA';
-    }
+    await this.espacioRepo.guardarBloqueo(nuevoBloqueo);
+    return nuevoBloqueo;
   }
 }

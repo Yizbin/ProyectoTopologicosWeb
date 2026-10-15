@@ -6,4 +6,6 @@ export interface IReservacionRepository {
     obtenerPorId(id: string): Promise<Reservacion | null>;
     obtenerPorUsuarioId(usuarioId: string): Promise<Reservacion[]>;
     actualizar(reservacion: Reservacion): Promise<void>;
+    obtenerTodas(): Promise<Reservacion[]>;
+    obtenerPorRangoFechas(fechaInicio: Date, fechaFin: Date, espacioId?: string): Promise<Reservacion[]>;
 }

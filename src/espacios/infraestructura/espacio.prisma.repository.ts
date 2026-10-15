@@ -17,6 +17,46 @@ export class EspacioPrismaRepository implements IEspacioRepository {
     return row ? this.mapearAEspacio(row) : null;
   }
 
+  async listarEspacios(activoSolo = true): Promise<Espacio[]> {
+    const rows = await this.prisma.espacio.findMany({
+      where: activoSolo ? { activo: true } : undefined,
+    });
+    return rows.map((r) => this.mapearAEspacio(r));
+  }
+
+  async guardarEspacio(espacio: Espacio): Promise<void> {
+    await this.prisma.espacio.upsert({
+      where: { id: espacio.id },
+      update: {
+        nombre: espacio.nombre,
+        descripcion: espacio.descripcion,
+        tipo: this.mapDominioAPrismaTipo(espacio.tipo),
+        costoPorHora: espacio.costoPorHora,
+        activo: espacio.activo,
+        duracionMinutos: espacio.duracionMinutos,
+        sedeId: espacio.sedeId,
+        capacidadMaxima: espacio.capacidadMaxima,
+        amenidades: espacio.amenidades,
+        minimoHorasReserva: espacio.minimoHorasReserva,
+        maximoHorasReserva: espacio.maximoHorasReserva,
+      },
+      create: {
+        id: espacio.id,
+        nombre: espacio.nombre,
+        descripcion: espacio.descripcion,
+        tipo: this.mapDominioAPrismaTipo(espacio.tipo),
+        costoPorHora: espacio.costoPorHora,
+        activo: espacio.activo,
+        duracionMinutos: espacio.duracionMinutos,
+        sedeId: espacio.sedeId,
+        capacidadMaxima: espacio.capacidadMaxima,
+        amenidades: espacio.amenidades,
+        minimoHorasReserva: espacio.minimoHorasReserva,
+        maximoHorasReserva: espacio.maximoHorasReserva,
+      },
+    });
+  }
+
   async obtenerSedePorId(id: string): Promise<Sede | null> {
     const row = await this.prisma.sede.findUnique({
       where: { id },
@@ -68,6 +108,39 @@ export class EspacioPrismaRepository implements IEspacioRepository {
       .map((b) => this.mapearABloqueo(b));
   }
 
+  async obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]> {
+    const rows = await this.prisma.bloqueo.findMany({
+      where: { espacioId },
+      orderBy: { fechaInicio: 'asc' },
+    });
+    return rows.map((b) => this.mapearABloqueo(b));
+  }
+
+  async guardarBloqueo(bloqueo: Bloqueo): Promise<void> {
+    await this.prisma.bloqueo.upsert({
+      where: { id: bloqueo.id },
+      update: {
+        fechaInicio: bloqueo.fechaInicio,
+        fechaFin: bloqueo.fechaFin,
+        horaInicio: bloqueo.horaInicio,
+        horaFin: bloqueo.horaFin,
+        motivo: bloqueo.motivo,
+        espacioId: bloqueo.espacioId,
+        activo: bloqueo.activo,
+      },
+      create: {
+        id: bloqueo.id,
+        fechaInicio: bloqueo.fechaInicio,
+        fechaFin: bloqueo.fechaFin,
+        horaInicio: bloqueo.horaInicio,
+        horaFin: bloqueo.horaFin,
+        motivo: bloqueo.motivo,
+        espacioId: bloqueo.espacioId,
+        activo: bloqueo.activo,
+      },
+    });
+  }
+
   private mapPrismaADominioTipo(tipo: string): TipoEspacio {
     switch (tipo) {
       case 'SALA':
@@ -80,6 +153,18 @@ export class EspacioPrismaRepository implements IEspacioRepository {
         return TipoEspacio.PC;
       default:
         return TipoEspacio.SALA;
+    }
+  }
+
+  private mapDominioAPrismaTipo(tipo: TipoEspacio): 'SALA' | 'CUBICULO' | 'PC' {
+    switch (tipo) {
+      case TipoEspacio.CUBICULO:
+        return 'CUBICULO';
+      case TipoEspacio.PC:
+        return 'PC';
+      case TipoEspacio.SALA:
+      default:
+        return 'SALA';
     }
   }
 

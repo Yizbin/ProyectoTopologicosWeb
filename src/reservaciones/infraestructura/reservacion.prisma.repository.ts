@@ -63,6 +63,28 @@ export class ReservacionPrismaRepository implements IReservacionRepository {
   async obtenerPorUsuarioId(usuarioId: string): Promise<Reservacion[]> {
     const rows = await this.prisma.reservacion.findMany({
       where: { usuarioId },
+      orderBy: { fecha: 'desc' },
+    });
+    return rows.map((r) => this.mapearAReservacion(r));
+  }
+
+  async obtenerTodas(): Promise<Reservacion[]> {
+    const rows = await this.prisma.reservacion.findMany({
+      orderBy: { fecha: 'desc' },
+    });
+    return rows.map((r) => this.mapearAReservacion(r));
+  }
+
+  async obtenerPorRangoFechas(fechaInicio: Date, fechaFin: Date, espacioId?: string): Promise<Reservacion[]> {
+    const rows = await this.prisma.reservacion.findMany({
+      where: {
+        espacioId: espacioId || undefined,
+        fecha: {
+          gte: fechaInicio,
+          lte: fechaFin,
+        },
+      },
+      orderBy: { fecha: 'asc' },
     });
     return rows.map((r) => this.mapearAReservacion(r));
   }
