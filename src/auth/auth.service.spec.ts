@@ -107,7 +107,7 @@ describe('AuthService', () => {
       correo: 'ana@correo.com',
       telefono: '555-9876',
       contrasena: 'miPasswordSeguro',
-      rol: RolUsuario.CLIENTE,
+      //rol: RolUsuario.CLIENTE,
     });
 
     expect(resultado.access_token).toBe('mocked_jwt_token_123');

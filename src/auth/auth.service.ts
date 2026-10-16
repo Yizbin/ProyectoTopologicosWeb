@@ -4,7 +4,6 @@ import bcrypt from 'bcrypt';
 import { UsuariosService } from '../usuarios/usuarios.service.js';
 import { LoginDto } from './dto/login.dto.js';
 import { RegistroDto } from './dto/registro.dto.js';
-import { Usuario } from '../dominio/entidades/usuario.entity.js';
 import { JwtPayload } from './strategies/jwt.strategy.js';
 import { Usuario, RolUsuario } from '../dominio/entidades/usuario.entity.js';
 
