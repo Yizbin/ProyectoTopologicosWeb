@@ -6,6 +6,7 @@ import { LoginDto } from './dto/login.dto.js';
 import { RegistroDto } from './dto/registro.dto.js';
 import { Usuario } from '../dominio/entidades/usuario.entity.js';
 import { JwtPayload } from './strategies/jwt.strategy.js';
+import { Usuario, RolUsuario } from '../dominio/entidades/usuario.entity.js';
 
 export interface LoginResponse {
   access_token: string;
@@ -62,25 +63,28 @@ export class AuthService {
   }
 
   async registro(registroDto: RegistroDto): Promise<LoginResponse> {
-    const usuario = await this.usuariosService.crearUsuario(registroDto);
+  const usuario = await this.usuariosService.crearUsuario({
+    ...registroDto,
+    rol: RolUsuario.CLIENTE,
+  });
 
-    const payload: JwtPayload = {
-      sub: usuario.id,
+  const payload: JwtPayload = {
+    sub: usuario.id,
+    correo: usuario.correo,
+    rol: usuario.rol,
+    nombre: usuario.nombre,
+  };
+
+  const token = await this.jwtService.signAsync(payload);
+
+  return {
+    access_token: token,
+    usuario: {
+      id: usuario.id,
+      nombre: usuario.nombre,
       correo: usuario.correo,
       rol: usuario.rol,
-      nombre: usuario.nombre,
-    };
-
-    const token = await this.jwtService.signAsync(payload);
-
-    return {
-      access_token: token,
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        correo: usuario.correo,
-        rol: usuario.rol,
-      },
-    };
-  }
+    },
+  };
+}
 }

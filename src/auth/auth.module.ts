@@ -5,6 +5,7 @@ import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { UsuariosModule } from '../usuarios/usuarios.module.js';
+import { obtenerJwtSecret } from '../config/jwt.config.js';
 
 if (!process.env.JWT_SECRET) {
   process.loadEnvFile?.('.env');
@@ -14,8 +15,8 @@ if (!process.env.JWT_SECRET) {
   imports: [
     UsuariosModule,
     PassportModule.register({ defaultStrategy: 'jwt' }),
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'super_secreto_jwt_para_sistema_reservas_2026',
+     JwtModule.register({
+      secret: obtenerJwtSecret(),
       signOptions: { expiresIn: '1h' },
     }),
   ],

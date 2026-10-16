@@ -5,15 +5,10 @@ import {
   IsInt,
   Min,
   Matches,
-  IsOptional,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CrearReservacionDto {
-  @IsOptional()
-  @IsString()
-  id?: string;
-
   @IsNotEmpty({ message: 'La fecha es obligatoria' })
   @IsDateString({}, { message: 'La fecha debe tener un formato ISO válido (YYYY-MM-DD)' })
   fecha!: string;
@@ -36,17 +31,9 @@ export class CrearReservacionDto {
   @IsString()
   espacioId!: string;
 
-  @IsNotEmpty({ message: 'El ID del usuario es obligatorio' })
-  @IsString()
-  usuarioId!: string;
-
   @IsNotEmpty({ message: 'La cantidad de personas es obligatoria' })
   @Type(() => Number)
   @IsInt({ message: 'La cantidad de personas debe ser un número entero' })
   @Min(1, { message: 'La cantidad de personas debe ser al menos 1' })
   cantidadPersonas!: number;
-
-  @IsOptional()
-  @IsString()
-  pagoId?: string;
 }
