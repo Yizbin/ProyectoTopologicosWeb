@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ArgumentsHost, HttpStatus } from '@nestjs/common';
+import { ArgumentsHost, BadRequestException, ForbiddenException, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import { DominioExceptionFilter } from './dominio-exception.filter.js';
 import {
   DominioError,
@@ -93,5 +93,37 @@ describe('DominioExceptionFilter', () => {
         tipoError: 'BloqueoAdministrativoError',
       }),
     );
+  });
+
+  it.each([
+    [new BadRequestException(['El nombre es obligatorio']), 400, 'El nombre es obligatorio'],
+    [new UnauthorizedException('Token inválido'), 401, 'Token inválido'],
+    [new ForbiddenException('Acceso denegado'), 403, 'Acceso denegado'],
+  ])('normaliza errores HTTP conservando su estado y mensaje', (error, status, message) => {
+    const { hostMock, statusMock, jsonMock } = createMockHost();
+
+    filter.catch(error, hostMock);
+
+    expect(statusMock).toHaveBeenCalledWith(status);
+    expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+      success: false,
+      statusCode: status,
+      message,
+      timestamp: expect.any(String),
+      path: '/reservaciones',
+    }));
+  });
+
+  it('no expone el detalle de errores internos inesperados', () => {
+    const { hostMock, statusMock, jsonMock } = createMockHost();
+
+    filter.catch(new Error('detalle secreto'), hostMock);
+
+    expect(statusMock).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(jsonMock).toHaveBeenCalledWith(expect.objectContaining({
+      success: false,
+      statusCode: 500,
+      message: 'Error interno del servidor.',
+    }));
   });
 });

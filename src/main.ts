@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule, ObserveInstrument } from './app.module.js';
 import { DominioExceptionFilter } from './common/filters/dominio-exception.filter.js';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
+import { obtenerOrigenesCors } from './config/cors.config.js';
 
 if (!process.env.JWT_SECRET || !process.env.DATABASE_URL) {
   process.loadEnvFile?.('.env');
@@ -14,7 +15,8 @@ async function bootstrap() {
     instrument: ObserveInstrument,
   });
 
-  app.enableCors({ origin: 'http://localhost:5173' });
+  const allowedOrigins = obtenerOrigenesCors();
+  app.enableCors({ origin: allowedOrigins });
 
   app.useGlobalPipes(
     new ValidationPipe({

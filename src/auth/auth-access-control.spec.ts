@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
@@ -12,6 +12,7 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { RolUsuario } from '../dominio/entidades/usuario.entity.js';
 import { TipoEspacio } from '../dominio/entidades/espacio.entity.js';
+import { DominioExceptionFilter } from '../common/filters/dominio-exception.filter.js';
 
 describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
   let app: INestApplication;
@@ -57,6 +58,7 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
 
     app = moduleFixture.createNestApplication();
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+    app.useGlobalFilters(new DominioExceptionFilter());
     await app.init();
 
     jwtService = moduleFixture.get<JwtService>(JwtService);
@@ -70,6 +72,41 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
       nombre: 'Usuario Test',
     });
   };
+
+  afterEach(async () => {
+    await app.close();
+  });
+
+  it.each(['expired', 'tampered'])('rechaza un JWT %s en una ruta protegida con HTTP 401 uniforme', async (kind) => {
+    const claims = {
+      sub: 'usuario-test-id',
+      correo: 'test@example.com',
+      rol: RolUsuario.CLIENTE,
+    };
+    const validToken = kind === 'expired'
+      ? jwtService.sign(claims, { expiresIn: '-1s' })
+      : jwtService.sign(claims);
+    const token = kind === 'expired'
+      ? validToken
+      : (() => {
+          const [header, payload, signature] = validToken.split('.');
+          const changedSignature = `${signature[0] === 'a' ? 'b' : 'a'}${signature.slice(1)}`;
+          return `${header}.${payload}.${changedSignature}`;
+        })();
+
+    const res = await request(app.getHttpServer())
+      .get('/reservaciones/res-1')
+      .set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(401);
+    expect(res.body).toEqual(expect.objectContaining({
+      success: false,
+      statusCode: 401,
+      message: expect.any(String),
+      timestamp: expect.any(String),
+      path: '/reservaciones/res-1',
+    }));
+  });
 
   describe('Endpoints Administrativos (ej. POST /espacios)', () => {
     it('1. Debe devolver HTTP 401 si NO se envía token', async () => {
