@@ -63,14 +63,14 @@ Para probar endpoints protegidos desde Swagger:
 
 
 **ADMIN** 
-- `admin@sistema.local`
+- `admin@seeder.com`
 - `Admin123*` 
 - Gestión total de espacios
 - Creación de bloqueos
 - Confirmación de reservaciones y consulta de usuarios. 
 
 **CLIENTE**
-`cliente@sistema.local` 
+`cliente@seeder.com` 
 `Cliente123*` 
 - Creación y consulta de reservaciones propias
 - Consulta pública del catálogo de espacios y horarios.
