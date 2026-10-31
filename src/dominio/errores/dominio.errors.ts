@@ -88,3 +88,26 @@ export class EstadoReservacionInvalidoError extends DominioError {
         super(mensaje);
     }
 }
+export class HorarioAtencionInvalidoError extends DominioError {
+    constructor(mensaje: string = "El horario de atención no es válido.") {
+        super(mensaje);
+    }
+}
+
+export class PagoNoEncontradoError extends DominioError {
+    constructor(mensaje: string = "El pago solicitado no fue encontrado.") {
+        super(mensaje);
+    }
+}
+
+export class ReservacionYaPagadaError extends DominioError {
+    constructor(mensaje: string = "La reservación ya tiene un pago registrado.") {
+        super(mensaje);
+    }
+}
+
+export class PagoEstadoInvalidoError extends DominioError {
+    constructor(mensaje: string = "La acción solicitada no es válida para el estado actual del pago.") {
+        super(mensaje);
+    }
+}

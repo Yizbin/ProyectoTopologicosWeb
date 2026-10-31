@@ -7,6 +7,7 @@ import { HorarioAtencion } from '../dominio/entidades/horario-atencion.entity.js
 import { Bloqueo } from '../dominio/entidades/bloqueo.entity.js';
 import { Sede } from '../dominio/entidades/sede.entity.js';
 import { Reservacion, EstadoReservacion } from '../dominio/entidades/reservacion.entity.js';
+import { hoy, sumarDias } from '../common/utils/fecha.util.js';
 import {
   FechaPasadaError,
   HoraInvalidaError,
@@ -53,12 +54,10 @@ describe('ReservacionesService - Reglas de Negocio', () => {
   );
 
   const getFechaFutura = (diasAdelante = 7, diaSemanaDeseado = 1) => {
-    const f = new Date();
-    f.setDate(f.getDate() + diasAdelante);
-    while (f.getDay() !== diaSemanaDeseado) {
-      f.setDate(f.getDate() + 1);
+    let f = sumarDias(hoy(), diasAdelante);
+    while (f.getUTCDay() !== diaSemanaDeseado) {
+      f = sumarDias(f, 1);
     }
-    f.setHours(12, 0, 0, 0);
     return f;
   };
 

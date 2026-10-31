@@ -5,6 +5,7 @@ import { Espacio, TipoEspacio } from '../../dominio/entidades/espacio.entity.js'
 import { HorarioAtencion } from '../../dominio/entidades/horario-atencion.entity.js';
 import { Bloqueo } from '../../dominio/entidades/bloqueo.entity.js';
 import { Sede } from '../../dominio/entidades/sede.entity.js';
+import { parseFecha } from '../../common/utils/fecha.util.js';
 
 @Injectable()
 export class EspacioPrismaRepository implements IEspacioRepository {
@@ -64,6 +65,29 @@ export class EspacioPrismaRepository implements IEspacioRepository {
     return row ? this.mapearASede(row) : null;
   }
 
+  async obtenerHorariosPorEspacio(espacioId: string): Promise<HorarioAtencion[]> {
+    const rows = await this.prisma.horarioAtencion.findMany({
+      where: { espacioId },
+      orderBy: [{ diaSemana: 'asc' }, { horaApertura: 'asc' }],
+    });
+    return rows.map((r: any) => this.mapearAHorario(r));
+  }
+
+  async reemplazarHorarios(espacioId: string, horarios: HorarioAtencion[]): Promise<void> {
+    await this.prisma.$transaction([
+      this.prisma.horarioAtencion.deleteMany({ where: { espacioId } }),
+      this.prisma.horarioAtencion.createMany({
+        data: horarios.map((h) => ({
+          id: h.id,
+          diaSemana: h.diaSemana,
+          horaApertura: h.horaApertura,
+          horaCierre: h.horaCierre,
+          espacioId,
+        })),
+      }),
+    ]);
+  }
+
   async obtenerHorariosPorEspacioYDia(espacioId: string, diaSemana: number): Promise<HorarioAtencion[]> {
     const rows = await this.prisma.horarioAtencion.findMany({
       where: {
@@ -75,37 +99,16 @@ export class EspacioPrismaRepository implements IEspacioRepository {
   }
 
   async obtenerBloqueosPorEspacioYFecha(espacioId: string, fecha: Date): Promise<Bloqueo[]> {
-    const fechaTime = fecha.getTime();
-    const inicioDia = new Date(fecha);
-    inicioDia.setHours(0, 0, 0, 0);
-    const finDia = new Date(fecha);
-    finDia.setHours(23, 59, 59, 999);
-
-    const margenInicio = new Date(inicioDia.getTime() - 24 * 60 * 60 * 1000);
-    const margenFin = new Date(finDia.getTime() + 24 * 60 * 60 * 1000);
-
+    const dia = parseFecha(fecha);
     const rows = await this.prisma.bloqueo.findMany({
       where: {
         espacioId,
         activo: true,
-        fechaInicio: { lte: margenFin },
-        fechaFin: { gte: margenInicio },
+        fechaInicio: { lte: dia },
+        fechaFin: { gte: dia },
       },
     });
-
-    return rows
-      .filter((b) => {
-        const bInicioTime = new Date(b.fechaInicio).getTime();
-        const bFinTime = new Date(b.fechaFin).getTime();
-        const caeExacto = fechaTime >= bInicioTime && fechaTime <= bFinTime;
-        const bInicioDia = new Date(b.fechaInicio);
-        bInicioDia.setHours(0, 0, 0, 0);
-        const bFinDia = new Date(b.fechaFin);
-        bFinDia.setHours(23, 59, 59, 999);
-        const caeDia = inicioDia.getTime() <= bFinDia.getTime() && finDia.getTime() >= bInicioDia.getTime();
-        return b.activo && (caeExacto || caeDia);
-      })
-      .map((b) => this.mapearABloqueo(b));
+    return rows.map((b: any) => this.mapearABloqueo(b));
   }
 
   async obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]> {

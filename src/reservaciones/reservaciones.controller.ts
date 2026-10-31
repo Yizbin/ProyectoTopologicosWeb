@@ -5,6 +5,7 @@ import {
   Patch,
   Body,
   Param,
+  Query,
   NotFoundException,
   ForbiddenException,
   UseGuards,
@@ -12,6 +13,9 @@ import {
 import { randomUUID } from 'node:crypto';
 import { ReservacionesService } from './reservaciones.service.js';
 import { CrearReservacionDto } from './dto/crear-reservacion.dto.js';
+import { CrearReservacionesMultiplesDto } from './dto/crear-reservaciones-multiples.dto.js';
+import { ListarReservacionesQueryDto } from './dto/listar-reservaciones-query.dto.js';
+import { parseFecha } from '../common/utils/fecha.util.js';
 import {
   Reservacion,
   EstadoReservacion,
@@ -53,7 +57,7 @@ export class ReservacionesController {
 
     const nuevaReservacion = new Reservacion(
       id,
-      new Date(dto.fecha),
+      parseFecha(dto.fecha),
       dto.horaInicio,
       dto.horaFin,
       EstadoReservacion.PENDIENTE,
@@ -67,6 +71,37 @@ export class ReservacionesController {
     await this.reservacionesService.crearReservacion(nuevaReservacion);
     const creada = await this.reservacionesService.obtenerPorId(id);
     return creada ?? nuevaReservacion;
+  }
+
+  @Post('multiples')
+  @UseGuards(JwtAuthGuard)
+  async crearReservacionesMultiples(
+    @Body() dto: CrearReservacionesMultiplesDto,
+    @CurrentUser() user: UsuarioToken,
+  ): Promise<{ cantidad: number; total: number; reservaciones: Reservacion[] }> {
+    const reservaciones = await this.reservacionesService.crearReservacionesMultiples({
+      ...dto,
+      usuarioId: user.id,
+      generarId: randomUUID,
+    });
+    return {
+      cantidad: reservaciones.length,
+      total: reservaciones.reduce((suma, r) => suma + r.subtotal, 0),
+      reservaciones,
+    };
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  async listar(@Query() query: ListarReservacionesQueryDto): Promise<Reservacion[]> {
+    return this.reservacionesService.listarReservaciones({
+      fecha: query.fecha ? parseFecha(query.fecha) : undefined,
+      desde: query.fechaInicio ? parseFecha(query.fechaInicio) : undefined,
+      hasta: query.fechaFin ? parseFecha(query.fechaFin) : undefined,
+      espacioId: query.espacioId,
+      estado: query.estado,
+    });
   }
 
   @Get('cliente/:usuarioId')

@@ -7,6 +7,9 @@ export interface IEspacioRepository {
     obtenerEspacioPorId(id: string): Promise<Espacio | null>;
     listarEspacios(activoSolo?: boolean): Promise<Espacio[]>;
     guardarEspacio(espacio: Espacio): Promise<void>;
+    obtenerHorariosPorEspacio(espacioId: string): Promise<HorarioAtencion[]>;
+    /** Reemplaza todo el horario semanal del espacio (borra y crea en una transacción). */
+    reemplazarHorarios(espacioId: string, horarios: HorarioAtencion[]): Promise<void>;
     obtenerHorariosPorEspacioYDia(espacioId: string, diaSemana: number): Promise<HorarioAtencion[]>;
     obtenerBloqueosPorEspacioYFecha(espacioId: string, fecha: Date): Promise<Bloqueo[]>;
     obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]>;

@@ -22,7 +22,8 @@
     "test:e2e": "vitest run --config ./vitest.config.e2e.ts",
     "prueba:avance": "tsx src/pruebas-avance1.ts",
     "seed": "tsx prisma/seed.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:tz": "TZ=America/Hermosillo vitest run && TZ=UTC vitest run && TZ=Pacific/Auckland vitest run"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

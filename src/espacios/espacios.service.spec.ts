@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { EspaciosService } from './espacios.service.js';
+import { DisponibilidadService } from './disponibilidad.service.js';
+import { ReservacionMemoryRepository } from '../reservaciones/infraestructura/reservacion.memory.repository.js';
 import { EspacioMemoryRepository } from './infraestructura/espacio.memory.repository.js';
 import { TipoEspacio } from '../dominio/entidades/espacio.entity.js';
 import { RangoHorasReservaInvalidoError, HoraInvalidaError, EspacioNoEncontradoError } from '../dominio/errores/dominio.errors.js';
@@ -16,7 +18,7 @@ describe('EspaciosService - Reglas de Negocio', () => {
         create: () => Promise.resolve(),
       },
     };
-    service = new EspaciosService(repo, mockPrisma);
+    service = new EspaciosService(repo, mockPrisma, new DisponibilidadService(repo, new ReservacionMemoryRepository()));
   });
 
   it('debe rechazar la creación de espacio si minimoHorasReserva > maximoHorasReserva', async () => {

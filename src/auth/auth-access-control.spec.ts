@@ -8,6 +8,8 @@ import { EspaciosController } from '../espacios/espacios.controller.js';
 import { EspaciosService } from '../espacios/espacios.service.js';
 import { ReservacionesController } from '../reservaciones/reservaciones.controller.js';
 import { ReservacionesService } from '../reservaciones/reservaciones.service.js';
+import { PagosController } from '../pagos/pagos.controller.js';
+import { PagosService } from '../pagos/pagos.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { RolUsuario } from '../dominio/entidades/usuario.entity.js';
@@ -25,6 +27,10 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
     obtenerEspacioPorId: () => Promise.resolve({ id: 'espacio-1', nombre: 'Sala VIP' }),
     obtenerHorarios: () => Promise.resolve([]),
     obtenerBloqueos: () => Promise.resolve([]),
+    buscarEspacios: () => Promise.resolve([{ id: 'espacio-1', nombre: 'Sala VIP' }]),
+    actualizarEspacio: () => Promise.resolve({ id: 'espacio-1', nombre: 'Sala VIP editada' }),
+    reemplazarHorarios: () => Promise.resolve([]),
+    obtenerDisponibilidad: () => Promise.resolve({ espacioId: 'espacio-1', libres: [], ocupados: [] }),
   };
 
   const mockReservacionesService = {
@@ -34,6 +40,14 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
     confirmarReservacion: () => Promise.resolve(),
     completarReservacion: () => Promise.resolve(),
     cancelarReservacion: () => Promise.resolve(),
+    crearReservacionesMultiples: () => Promise.resolve([{ id: 'res-1', subtotal: 200 }, { id: 'res-2', subtotal: 200 }]),
+    listarReservaciones: () => Promise.resolve([]),
+  };
+
+  const mockPagosService = {
+    registrarPago: () => Promise.resolve([{ id: 'pago-1', montoTotal: 200 }]),
+    obtenerPorId: () => Promise.resolve({ id: 'pago-1' }),
+    completarPago: () => Promise.resolve({ id: 'pago-1' }),
   };
 
   beforeEach(async () => {
@@ -47,12 +61,13 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
           signOptions: { expiresIn: '1h' },
         }),
       ],
-      controllers: [EspaciosController, ReservacionesController],
+      controllers: [EspaciosController, ReservacionesController, PagosController],
       providers: [
         JwtStrategy,
         RolesGuard,
         { provide: EspaciosService, useValue: mockEspaciosService },
         { provide: ReservacionesService, useValue: mockReservacionesService },
+        { provide: PagosService, useValue: mockPagosService },
       ],
     }).compile();
 
@@ -254,6 +269,73 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
         });
 
       expect(res.status).toBe(201);
+    });
+  });
+  describe('Endpoints nuevos (búsqueda, disponibilidad, multi-día, edición, listado admin y pagos)', () => {
+    const cuerpoMultiple = {
+      fechas: ['2030-01-07', '2030-01-08'],
+      horaInicio: '10:00',
+      horaFin: '12:00',
+      espacioId: 'espacio-1',
+      cantidadPersonas: 2,
+    };
+
+    it('GET /espacios con filtros y GET /espacios/:id/disponibilidad son públicos (200)', async () => {
+      const busqueda = await request(app.getHttpServer()).get('/espacios?fecha=2030-01-07&capacidad=4&tipo=Sala');
+      expect(busqueda.status).toBe(200);
+      const disp = await request(app.getHttpServer()).get('/espacios/espacio-1/disponibilidad?fecha=2030-01-07');
+      expect(disp.status).toBe(200);
+    });
+
+    it('rechaza filtros inválidos con HTTP 400', async () => {
+      const res = await request(app.getHttpServer()).get('/espacios?tipo=Hangar&capacidad=abc');
+      expect(res.status).toBe(400);
+      const sinFecha = await request(app.getHttpServer()).get('/espacios/espacio-1/disponibilidad');
+      expect(sinFecha.status).toBe(400);
+    });
+
+    it.each([
+      ['patch', '/espacios/espacio-1', { nombre: 'Nuevo' }],
+      ['put', '/espacios/espacio-1/horarios', { horarios: [{ diaSemana: 1, horaApertura: '09:00', horaCierre: '18:00' }] }],
+      ['get', '/reservaciones?fecha=2030-01-07', undefined],
+      ['patch', '/pagos/pago-1/completar', undefined],
+    ] as const)('%s %s: 401 sin token, 403 con CLIENTE, 200 con ADMIN', async (metodo, ruta, cuerpo) => {
+      const llamar = (token?: string) => {
+        let r = (request(app.getHttpServer()) as any)[metodo](ruta);
+        if (token) r = r.set('Authorization', `Bearer ${token}`);
+        return cuerpo ? r.send(cuerpo) : r;
+      };
+      expect((await llamar()).status).toBe(401);
+      expect((await llamar(generarToken(RolUsuario.CLIENTE))).status).toBe(403);
+      expect((await llamar(generarToken(RolUsuario.ADMIN))).status).toBe(200);
+    });
+
+    it('POST /reservaciones/multiples exige token y valida el cuerpo', async () => {
+      const sinToken = await request(app.getHttpServer()).post('/reservaciones/multiples').send(cuerpoMultiple);
+      expect(sinToken.status).toBe(401);
+
+      const token = generarToken(RolUsuario.CLIENTE);
+      const ok = await request(app.getHttpServer()).post('/reservaciones/multiples').set('Authorization', `Bearer ${token}`).send(cuerpoMultiple);
+      expect(ok.status).toBe(201);
+      expect(ok.body).toEqual(expect.objectContaining({ cantidad: 2, total: 400 }));
+
+      const vacio = await request(app.getHttpServer()).post('/reservaciones/multiples').set('Authorization', `Bearer ${token}`).send({ ...cuerpoMultiple, fechas: [] });
+      expect(vacio.status).toBe(400);
+    });
+
+    it('POST /pagos exige token; TARJETA exige referencia y EFECTIVO no', async () => {
+      const cuerpo = { reservacionIds: ['res-1'], metodo: 'TARJETA' };
+      expect((await request(app.getHttpServer()).post('/pagos').send(cuerpo)).status).toBe(401);
+
+      const token = generarToken(RolUsuario.CLIENTE);
+      const sinReferencia = await request(app.getHttpServer()).post('/pagos').set('Authorization', `Bearer ${token}`).send(cuerpo);
+      expect(sinReferencia.status).toBe(400);
+
+      const conReferencia = await request(app.getHttpServer()).post('/pagos').set('Authorization', `Bearer ${token}`).send({ ...cuerpo, referencia: 'AUT-123' });
+      expect(conReferencia.status).toBe(201);
+
+      const efectivo = await request(app.getHttpServer()).post('/pagos').set('Authorization', `Bearer ${token}`).send({ reservacionIds: ['res-1'], metodo: 'EFECTIVO' });
+      expect(efectivo.status).toBe(201);
     });
   });
 });

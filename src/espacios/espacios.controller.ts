@@ -2,6 +2,8 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Patch,
   Body,
   Param,
   Query,
@@ -9,8 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EspaciosService } from './espacios.service.js';
+import type { EspacioBuscado } from './espacios.service.js';
 import { CrearEspacioDto } from './dto/crear-espacio.dto.js';
 import { CrearBloqueoDto } from './dto/crear-bloqueo.dto.js';
+import { ActualizarEspacioDto } from './dto/actualizar-espacio.dto.js';
+import { ReemplazarHorariosDto } from './dto/horario-atencion.dto.js';
+import { BuscarEspaciosQueryDto, DisponibilidadQueryDto } from './dto/buscar-espacios-query.dto.js';
+import type { DisponibilidadDia } from './disponibilidad.service.js';
+import { hoy, parseFecha } from '../common/utils/fecha.util.js';
 import { Espacio } from '../dominio/entidades/espacio.entity.js';
 import { HorarioAtencion } from '../dominio/entidades/horario-atencion.entity.js';
 import { Bloqueo } from '../dominio/entidades/bloqueo.entity.js';
@@ -41,11 +49,14 @@ export class EspaciosController {
   }
 
   @Get()
-  async listarEspacios(
-    @Query('activo') activo?: string,
-  ): Promise<Espacio[]> {
-    const activoSolo = activo === undefined ? true : activo === 'true';
-    return this.espaciosService.listarEspacios(activoSolo);
+  async listarEspacios(@Query() query: BuscarEspaciosQueryDto): Promise<EspacioBuscado[]> {
+    return this.espaciosService.buscarEspacios({
+      fecha: query.fecha ? parseFecha(query.fecha) : undefined,
+      capacidad: query.capacidad,
+      tipo: query.tipo,
+      sedeId: query.sedeId,
+      activoSolo: query.activo ?? true,
+    });
   }
 
   @Get(':id')
@@ -53,10 +64,39 @@ export class EspaciosController {
     return this.espaciosService.obtenerEspacioPorId(id);
   }
 
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  async actualizarEspacio(
+    @Param('id') id: string,
+    @Body() dto: ActualizarEspacioDto,
+  ): Promise<Espacio> {
+    return this.espaciosService.actualizarEspacio(id, dto);
+  }
+
+  /** Reemplaza el horario semanal completo del espacio. */
+  @Put(':id/horarios')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  async reemplazarHorarios(
+    @Param('id') id: string,
+    @Body() dto: ReemplazarHorariosDto,
+  ): Promise<HorarioAtencion[]> {
+    return this.espaciosService.reemplazarHorarios(id, dto.horarios);
+  }
+
+  @Get(':id/disponibilidad')
+  async obtenerDisponibilidad(
+    @Param('id') id: string,
+    @Query() query: DisponibilidadQueryDto,
+  ): Promise<DisponibilidadDia> {
+    return this.espaciosService.obtenerDisponibilidad(id, parseFecha(query.fecha));
+  }
+
   @Get(':id/horarios')
   async obtenerHorarios(
     @Param('id') id: string,
-    @Query('diaSemana', ParseIntPipe) diaSemana: number,
+    @Query('diaSemana', new ParseIntPipe({ optional: true })) diaSemana?: number,
   ): Promise<HorarioAtencion[]> {
     return this.espaciosService.obtenerHorarios(id, diaSemana);
   }
@@ -66,7 +106,7 @@ export class EspaciosController {
     @Param('id') id: string,
     @Query('fecha') fecha: string,
   ): Promise<Bloqueo[]> {
-    const fechaDate = fecha ? new Date(fecha) : new Date();
+    const fechaDate = fecha ? parseFecha(fecha) : hoy();
     return this.espaciosService.obtenerBloqueos(id, fechaDate);
   }
 }

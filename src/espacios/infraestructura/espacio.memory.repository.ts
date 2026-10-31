@@ -4,6 +4,7 @@ import { Espacio } from '@/dominio/entidades/espacio.entity';
 import { HorarioAtencion } from '@/dominio/entidades/horario-atencion.entity';
 import { Bloqueo } from '@/dominio/entidades/bloqueo.entity';
 import { Sede } from '@/dominio/entidades/sede.entity';
+import { formatoFecha } from '../../common/utils/fecha.util.js';
 
 @Injectable()
 export class EspacioMemoryRepository implements IEspacioRepository {
@@ -33,26 +34,27 @@ export class EspacioMemoryRepository implements IEspacioRepository {
         return this.sedes.find(s => s.id === id) || null;
     }
 
+    async obtenerHorariosPorEspacio(espacioId: string): Promise<HorarioAtencion[]> {
+        return this.horarios.filter(h => h.espacioId === espacioId);
+    }
+
+    async reemplazarHorarios(espacioId: string, horarios: HorarioAtencion[]): Promise<void> {
+        this.horarios = this.horarios.filter(h => h.espacioId !== espacioId);
+        this.horarios.push(...horarios);
+    }
+
     async obtenerHorariosPorEspacioYDia(espacioId: string, diaSemana: number): Promise<HorarioAtencion[]> {
         return this.horarios.filter(h => h.espacioId === espacioId && h.diaSemana === diaSemana);
     }
 
     async obtenerBloqueosPorEspacioYFecha(espacioId: string, fecha: Date): Promise<Bloqueo[]> {
-        const fechaInicioDia = new Date(fecha);
-        fechaInicioDia.setHours(0, 0, 0, 0);
-        const fechaFinDia = new Date(fecha);
-        fechaFinDia.setHours(23, 59, 59, 999);
-
-        return this.bloqueos.filter(b => {
-            const bInicio = new Date(b.fechaInicio);
-            bInicio.setHours(0, 0, 0, 0);
-            const bFin = new Date(b.fechaFin);
-            bFin.setHours(23, 59, 59, 999);
-            return b.espacioId === espacioId && 
-                b.activo &&
-                fechaInicioDia.getTime() <= bFin.getTime() && 
-                fechaFinDia.getTime() >= bInicio.getTime();
-        });
+        const dia = formatoFecha(fecha);
+        return this.bloqueos.filter(b =>
+            b.espacioId === espacioId &&
+            b.activo &&
+            formatoFecha(b.fechaInicio) <= dia &&
+            formatoFecha(b.fechaFin) >= dia
+        );
     }
 
     async obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]> {

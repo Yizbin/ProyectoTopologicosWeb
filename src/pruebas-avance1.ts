@@ -7,6 +7,7 @@ import { HorarioAtencion } from '@/dominio/entidades/horario-atencion.entity';
 import { Reservacion, EstadoReservacion } from '@/dominio/entidades/reservacion.entity';
 import { Sede } from '@/dominio/entidades/sede.entity';
 import { Bloqueo } from '@/dominio/entidades/bloqueo.entity';
+import { diaSemana, hoy, sumarDias } from '@/common/utils/fecha.util';
 
 async function ejecutarEscenarios() {
     console.log("=== INICIANDO PRUEBAS AVANZADAS DEL DOMINIO ===\n");
@@ -26,12 +27,10 @@ async function ejecutarEscenarios() {
     
     espacioRepo.horarios.push(new HorarioAtencion("horario-1", 1, "09:00", "18:00", idEspacio));
 
-    const hoy = new Date();
-    const proximoLunes = new Date(hoy);
-    proximoLunes.setDate(hoy.getDate() + 7);
-    
-    const miercoles = new Date(proximoLunes);
-    miercoles.setDate(proximoLunes.getDate() + 2);
+    let proximoLunes = sumarDias(hoy(), 7);
+    while (diaSemana(proximoLunes) !== 1) proximoLunes = sumarDias(proximoLunes, 1);
+    const miercoles = sumarDias(proximoLunes, 2);
+    espacioRepo.horarios.push(new HorarioAtencion("horario-2", 2, "09:00", "18:00", idEspacio)); 
     espacioRepo.bloqueos.push(new Bloqueo("bloqueo-1", proximoLunes, miercoles, "00:00", "23:59", "Mantenimiento general", idEspacio, true));
 
     console.log("Datos: Sede (08-20h) -> Sala 1800 (Bloques 60m, Max 10p, 1-4 hrs). BLOQUEADA próximo Lun-Mie.\n");
@@ -48,16 +47,14 @@ async function ejecutarEscenarios() {
     } catch (e: any) { console.log(`REGLA HORA LÓGICA: ${e.message}`); }
 
     try {
-        const martes = new Date(proximoLunes);
-        martes.setDate(proximoLunes.getDate() + 1);
+        const martes = sumarDias(proximoLunes, 1);
         const res3 = new Reservacion("res-3", martes, "10:00", "12:00", EstadoReservacion.PENDIENTE, idEspacio, "u3", "p3", 5, 0);
         await reservacionService.crearReservacion(res3);
     } catch (e: any) { console.log(`REGLA RANGO BLOQUEO: ${e.message}`); }
 
     try {
-        const jueves = new Date(proximoLunes);
-        jueves.setDate(proximoLunes.getDate() + 3);
-        espacioRepo.horarios.push(new HorarioAtencion("horario-2", jueves.getDay(), "09:00", "18:00", idEspacio));
+        const jueves = sumarDias(proximoLunes, 3);
+        espacioRepo.horarios.push(new HorarioAtencion("horario-3", diaSemana(jueves), "09:00", "18:00", idEspacio));
 
         const res4 = new Reservacion("res-4", jueves, "10:00", "12:00", EstadoReservacion.PENDIENTE, idEspacio, "u4", "p4", 5, 0);
         await reservacionService.crearReservacion(res4);

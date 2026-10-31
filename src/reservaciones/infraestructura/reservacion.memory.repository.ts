@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common/decorators/core/index.js';
 import { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
 import { Reservacion } from '../../dominio/entidades/reservacion.entity.js';
+import { formatoFecha } from '../../common/utils/fecha.util.js';
 
 @Injectable()
 export class ReservacionMemoryRepository implements IReservacionRepository {
@@ -10,10 +11,18 @@ export class ReservacionMemoryRepository implements IReservacionRepository {
         this.reservaciones.push(reservacion);
     }
 
+    async guardarVarias(reservaciones: Reservacion[]): Promise<void> {
+        this.reservaciones.push(...reservaciones);
+    }
+
+    async obtenerPorPagoId(pagoId: string): Promise<Reservacion | null> {
+        return this.reservaciones.find(r => r.pagoId === pagoId) || null;
+    }
+
     async obtenerPorEspacioYFecha(espacioId: string, fecha: Date): Promise<Reservacion[]> {
         return this.reservaciones.filter(r =>
             r.espacioId === espacioId &&
-            r.fecha.toDateString() === fecha.toDateString() &&
+            formatoFecha(r.fecha) === formatoFecha(fecha) &&
             r.estado !== "cancelada"
         );
     }
@@ -39,12 +48,12 @@ export class ReservacionMemoryRepository implements IReservacionRepository {
     }
 
     async obtenerPorRangoFechas(fechaInicio: Date, fechaFin: Date, espacioId?: string): Promise<Reservacion[]> {
-        const tInicio = fechaInicio.getTime();
-        const tFin = fechaFin.getTime();
+        const desde = formatoFecha(fechaInicio);
+        const hasta = formatoFecha(fechaFin);
         return this.reservaciones.filter(r => {
-            const t = r.fecha.getTime();
+            const f = formatoFecha(r.fecha);
             const coincideEspacio = espacioId ? r.espacioId === espacioId : true;
-            return coincideEspacio && t >= tInicio && t <= tFin;
+            return coincideEspacio && f >= desde && f <= hasta;
         });
     }
 }

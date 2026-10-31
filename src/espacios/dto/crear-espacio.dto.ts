@@ -8,9 +8,11 @@ import {
   Min,
   IsArray,
   IsOptional,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { TipoEspacio } from '../../dominio/entidades/espacio.entity.js';
+import { HorarioAtencionDto } from './horario-atencion.dto.js';
 
 export class CrearEspacioDto {
   @IsOptional()
@@ -70,4 +72,10 @@ export class CrearEspacioDto {
   @IsInt({ message: 'El máximo de horas debe ser un número entero' })
   @Min(1, { message: 'El máximo de horas debe ser de al menos 1' })
   maximoHorasReserva!: number;
+
+  @IsOptional()
+  @IsArray({ message: 'horarios debe ser una lista.' })
+  @ValidateNested({ each: true })
+  @Type(() => HorarioAtencionDto)
+  horarios?: HorarioAtencionDto[];
 }
