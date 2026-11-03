@@ -7,9 +7,6 @@ import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { UsuariosModule } from '../usuarios/usuarios.module.js';
 import { obtenerJwtSecret } from '../config/jwt.config.js';
 
-if (!process.env.JWT_SECRET) {
-  process.loadEnvFile?.('.env');
-}
 
 @Module({
   imports: [

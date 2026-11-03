@@ -1,3 +1,5 @@
+import './config/load-env.js';
+import { obtenerObserveConfig } from './config/observe.config.js';
 import { Module } from '@nestjs/common';
 import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
@@ -13,11 +15,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
 @Module({
   imports: [
-    ObserveModule.forRoot({
-      appKey: 'YOUR_APP_KEY',
-      appSecret: 'YOUR_APP_SECRET',
-      serviceId: 'sistema-reservas',
-    }),
+    ObserveModule.forRoot(obtenerObserveConfig()),
     PrismaModule,
     UsuariosModule,
     AuthModule,
@@ -28,4 +26,4 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {} 

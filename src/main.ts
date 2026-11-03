@@ -1,3 +1,4 @@
+import './config/load-env.js';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -6,9 +7,6 @@ import { DominioExceptionFilter } from './common/filters/dominio-exception.filte
 import { ResponseInterceptor } from './common/interceptors/response.interceptor.js';
 import { obtenerOrigenesCors } from './config/cors.config.js';
 
-if (!process.env.JWT_SECRET || !process.env.DATABASE_URL) {
-  process.loadEnvFile?.('.env');
-}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
