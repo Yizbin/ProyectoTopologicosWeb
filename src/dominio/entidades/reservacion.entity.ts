@@ -1,6 +1,8 @@
+import type { ReservationSummary } from '../../shared/api-contracts.js';
+
 export enum EstadoReservacion { PENDIENTE = "pendiente", CONFIRMADA = "confirmada", CANCELADA = "cancelada", COMPLETADA = "completada" }
 
-export class Reservacion {
+export class Reservacion implements ReservationSummary {
     constructor(
         public id: string,
         public fecha: Date,

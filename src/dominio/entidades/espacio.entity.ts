@@ -1,6 +1,8 @@
+import type { SpaceSummary } from '../../shared/api-contracts.js';
+
 export enum TipoEspacio { SALA = "Sala", CUBICULO = "Cubiculo", PC = "PC" }
 
-export class Espacio {
+export class Espacio implements SpaceSummary {
     constructor(
         public id: string,
         public nombre: string,

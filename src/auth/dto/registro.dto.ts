@@ -1,6 +1,7 @@
 import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import type { RegistrationRequest } from '../../shared/api-contracts.js';
 
-export class RegistroDto {
+export class RegistroDto implements RegistrationRequest {
   @IsString()
   @IsNotEmpty({ message: 'El nombre es obligatorio.' })
   nombre: string;

@@ -1,6 +1,8 @@
+import type { AuthenticatedCustomer } from '../../shared/api-contracts.js';
+
 export enum RolUsuario { CLIENTE = "CLIENTE", ADMIN = "ADMIN" }
 
-export class Usuario {
+export class Usuario implements AuthenticatedCustomer {
     constructor(
         public id: string,
         public nombre: string,

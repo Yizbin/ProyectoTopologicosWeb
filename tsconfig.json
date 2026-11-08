@@ -12,15 +12,13 @@
     "strict": true,
     "strictPropertyInitialization": false,
     "outDir": "./dist",
-    "types": [
-      "node",
-      "vitest/globals"
-    ],
+    "types": ["node", "vitest/globals"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
   "ts-node": {
     "require": ["tsconfig-paths/register"]
-  }
+  },
+  "exclude": ["node_modules", "dist", "storefront"]
 }

@@ -3,6 +3,7 @@ node_modules/
 
 # Salida de compilación
 /dist
+/storefront/dist/
 /build
 *.tsbuildinfo
 

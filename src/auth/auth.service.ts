@@ -6,16 +6,9 @@ import { LoginDto } from './dto/login.dto.js';
 import { RegistroDto } from './dto/registro.dto.js';
 import { JwtPayload } from './strategies/jwt.strategy.js';
 import { Usuario, RolUsuario } from '../dominio/entidades/usuario.entity.js';
+import type { LoginResponse } from '../shared/api-contracts.js';
 
-export interface LoginResponse {
-  access_token: string;
-  usuario: {
-    id: string;
-    nombre: string;
-    correo: string;
-    rol: string;
-  };
-}
+export type { LoginResponse } from '../shared/api-contracts.js';
 
 @Injectable()
 export class AuthService {
