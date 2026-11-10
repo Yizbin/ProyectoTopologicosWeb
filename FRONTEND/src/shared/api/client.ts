@@ -1,7 +1,7 @@
 import type {
   ApiErrorResponse,
   ApiSuccessResponse,
-} from '../../../../src/shared/api-contracts.js';
+} from './contracts.js';
 
 const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, '');
 const sessionExpiredEvent = 'storefront:session-expired';

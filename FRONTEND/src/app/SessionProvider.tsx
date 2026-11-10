@@ -11,7 +11,7 @@ import type {
   AuthenticatedCustomer,
   LoginResponse,
   RegistrationRequest,
-} from '../../../src/shared/api-contracts.js';
+} from '../shared/api/contracts.js';
 import { navigate } from './navigation.js';
 import {
   api,

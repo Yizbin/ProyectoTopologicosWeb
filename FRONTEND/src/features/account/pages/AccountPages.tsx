@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { ReservationSummary } from '../../../../../src/shared/api-contracts.js';
+import type { ReservationSummary } from '../../../shared/api/contracts.js';
 import { useSession } from '../../../app/SessionProvider.js';
 import { Link } from '../../../app/navigation-link.js';
 import { api, ApiClientError } from '../../../shared/api/client.js';

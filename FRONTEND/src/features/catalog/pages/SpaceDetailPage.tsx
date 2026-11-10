@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import type { SpaceSummary } from '../../../../../src/shared/api-contracts.js';
+import type { SpaceSummary } from '../../../shared/api/contracts.js';
 import { api, ApiClientError } from '../../../shared/api/client.js';
 import {
   ErrorState,
