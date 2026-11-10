@@ -62,8 +62,7 @@ export function App() {
     ) : (
       <LoginPage returnTo={params.get('returnTo')} />
     );
-  else if (path === '/register')
-    page = user ? <Redirect to="/spaces" /> : <RegisterPage />;
+  else if (path === '/register') page = <RegisterPage />;
   else if (path === '/account')
     page = (
       <RequireSession currentLocation={currentLocation}>

@@ -11,7 +11,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
         <Link to="/" className="brand" aria-label="Casa Norte, inicio">
           <span className="brand-mark">CN</span>
           <span>
-            casa norte<small>espacios que inspiran</small>
+            Casa Norte<small>Espacios que inspiran</small>
           </span>
         </Link>
         <nav className="main-nav" aria-label="Navegación principal">
@@ -48,7 +48,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <main className="site-main">{children}</main>
       <footer className="site-footer">
         <Link to="/" className="footer-brand">
-          casa norte<span>Tu próximo espacio empieza aquí.</span>
+          Casa Norte<span>Tu próximo espacio empieza aquí.</span>
         </Link>
         <p>Encuentra el lugar ideal para tus ideas.</p>
         <span className="footer-copy">

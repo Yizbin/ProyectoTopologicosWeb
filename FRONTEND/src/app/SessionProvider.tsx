@@ -29,6 +29,7 @@ interface SessionContextValue {
   notice: string | null;
   signIn(correo: string, contrasena: string): Promise<void>;
   signUp(input: RegistrationRequest): Promise<void>;
+  register(input: RegistrationRequest): Promise<void>;
   signOut(): void;
   clearNotice(): void;
 }
@@ -95,6 +96,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     [saveSession],
   );
 
+  const register = useCallback(async (input: RegistrationRequest) => {
+    await api.post<LoginResponse>('/auth/registro', input);
+  }, []);
+
   const signOut = useCallback(() => {
     window.localStorage.removeItem(storageKey);
     setSession(null);
@@ -108,10 +113,11 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       notice,
       signIn,
       signUp,
+      register,
       signOut,
       clearNotice: () => setNotice(null),
     }),
-    [session, notice, signIn, signOut, signUp],
+    [session, notice, signIn, signOut, signUp, register],
   );
 
   return (

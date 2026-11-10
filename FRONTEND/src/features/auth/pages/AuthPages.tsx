@@ -135,6 +135,7 @@ export function RegisterPage() {
     contrasena: '',
   });
   const [error, setError] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -143,10 +144,12 @@ export function RegisterPage() {
     setSubmitting(true);
     try {
       await signUp(fields);
-      navigate('/spaces', true);
+      setSuccessNotice('¡Cuenta creada con éxito! Entrando a tu espacio…');
+      setTimeout(() => {
+        navigate('/spaces', true);
+      }, 2000);
     } catch (cause) {
       setError(friendlyMessage(cause));
-    } finally {
       setSubmitting(false);
     }
   };
@@ -164,6 +167,11 @@ export function RegisterPage() {
         </>
       }
     >
+      {successNotice && (
+        <div className="form-notice form-notice-success" role="status">
+          {successNotice}
+        </div>
+      )}
       <form className="auth-form" onSubmit={submit}>
         <label htmlFor="name">Nombre</label>
         <input
@@ -172,6 +180,7 @@ export function RegisterPage() {
           placeholder="Tu nombre"
           value={fields.nombre}
           onChange={(event) => update('nombre', event.target.value)}
+          disabled={submitting || Boolean(successNotice)}
           required
         />
         <label htmlFor="register-email">Correo electrónico</label>
@@ -182,6 +191,7 @@ export function RegisterPage() {
           placeholder="tu@correo.com"
           value={fields.correo}
           onChange={(event) => update('correo', event.target.value)}
+          disabled={submitting || Boolean(successNotice)}
           required
         />
         <label htmlFor="phone">Teléfono</label>
@@ -192,6 +202,7 @@ export function RegisterPage() {
           placeholder="614 000 0000"
           value={fields.telefono}
           onChange={(event) => update('telefono', event.target.value)}
+          disabled={submitting || Boolean(successNotice)}
           required
         />
         <label htmlFor="register-password">
@@ -205,6 +216,7 @@ export function RegisterPage() {
           placeholder="Crea una contraseña"
           value={fields.contrasena}
           onChange={(event) => update('contrasena', event.target.value)}
+          disabled={submitting || Boolean(successNotice)}
           required
         />
         {error && (
@@ -214,7 +226,7 @@ export function RegisterPage() {
         )}
         <button
           className="button button-dark button-full auth-submit"
-          disabled={submitting}
+          disabled={submitting || Boolean(successNotice)}
         >
           {submitting ? 'Creando cuenta…' : 'Crear cuenta'} <span>↗</span>
         </button>
