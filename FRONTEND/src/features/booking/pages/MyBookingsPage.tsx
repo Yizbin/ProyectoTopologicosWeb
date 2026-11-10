@@ -10,6 +10,7 @@ import type {
 } from '../../../shared/api/types';
 import { AsyncStateContainer } from '../../../shared/components/AsyncStateContainer';
 import { useSession } from '../../auth/SessionProvider';
+import { PaymentModal } from '../components/PaymentModal';
 import {
   normalizeApiError,
   translateBookingError,
@@ -48,6 +49,13 @@ function getIsoDateOnly(value: Date | string): string {
     : value.toISOString().slice(0, 10);
 }
 
+function getEffectiveEstado(reservacion: Reservacion): EstadoReservacion {
+  if (reservacion.estado === 'pendiente' && Boolean(reservacion.pagoId)) {
+    return 'confirmada';
+  }
+  return reservacion.estado;
+}
+
 export function MyBookingsPage() {
   const { user } = useSession();
 
@@ -63,6 +71,8 @@ export function MyBookingsPage() {
 
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [selectedReservationForPayment, setSelectedReservationForPayment] =
+    useState<Reservacion | null>(null);
   const [actionError, setActionError] = useState<ApiError | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
@@ -141,7 +151,7 @@ export function MyBookingsPage() {
 
   const filteredReservations = useMemo(() => {
     return reservaciones.filter((item) => {
-      if (statusFilter !== 'todas' && item.estado !== statusFilter) {
+      if (statusFilter !== 'todas' && getEffectiveEstado(item) !== statusFilter) {
         return false;
       }
       if (dateFilter && getIsoDateOnly(item.fecha) !== dateFilter) {
@@ -313,9 +323,12 @@ export function MyBookingsPage() {
                 const spaceName =
                   espaciosMap[reservacion.espacioId] ??
                   `Espacio #${reservacion.espacioId.slice(0, 8)}`;
+                const effectiveEstado = getEffectiveEstado(reservacion);
+                const isPaid = Boolean(reservacion.pagoId);
+                const canPay = effectiveEstado === 'pendiente';
                 const canCancel =
-                  reservacion.estado === 'pendiente' ||
-                  reservacion.estado === 'confirmada';
+                  effectiveEstado === 'pendiente' ||
+                  effectiveEstado === 'confirmada';
                 const isConfirming = confirmCancelId === reservacion.id;
                 const isCancelling = cancellingId === reservacion.id;
 
@@ -326,13 +339,32 @@ export function MyBookingsPage() {
                   >
                     <div>
                       <div className="flex items-start justify-between gap-3">
-                        <span
-                          className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
-                            STATUS_BADGE_CLASSES[reservacion.estado]
-                          }`}
-                        >
-                          {STATUS_LABELS[reservacion.estado]}
-                        </span>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
+                              STATUS_BADGE_CLASSES[effectiveEstado]
+                            }`}
+                          >
+                            {STATUS_LABELS[effectiveEstado]}
+                          </span>
+                          {isPaid && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-medium text-stone-700 ring-1 ring-inset ring-stone-200">
+                              <svg
+                                aria-hidden="true"
+                                className="h-3 w-3 text-emerald-600"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="2.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              >
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                              Pagada
+                            </span>
+                          )}
+                        </div>
                         <span className="font-mono text-xs text-stone-400">
                           #{reservacion.id.slice(0, 8)}
                         </span>
@@ -408,7 +440,7 @@ export function MyBookingsPage() {
                         </strong>
                       </div>
 
-                      {canCancel && (
+                      {(canPay || canCancel) && (
                         <div>
                           {isConfirming ? (
                             <div className="flex items-center gap-2">
@@ -434,17 +466,57 @@ export function MyBookingsPage() {
                               </button>
                             </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setActionError(null);
-                                setActionSuccess(null);
-                                setConfirmCancelId(reservacion.id);
-                              }}
-                              className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
-                            >
-                              Cancelar reservación
-                            </button>
+                            <div className="flex flex-wrap items-center justify-end gap-2">
+                              {canPay && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActionError(null);
+                                    setActionSuccess(null);
+                                    setConfirmCancelId(null);
+                                    setSelectedReservationForPayment(
+                                      reservacion,
+                                    );
+                                  }}
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs transition hover:bg-emerald-700"
+                                >
+                                  <svg
+                                    aria-hidden="true"
+                                    className="h-3.5 w-3.5"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2.1"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  >
+                                    <rect
+                                      x="2"
+                                      y="5"
+                                      width="20"
+                                      height="14"
+                                      rx="2"
+                                    />
+                                    <line x1="2" y1="10" x2="22" y2="10" />
+                                  </svg>
+                                  Pagar en línea
+                                </button>
+                              )}
+
+                              {canCancel && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActionError(null);
+                                    setActionSuccess(null);
+                                    setConfirmCancelId(reservacion.id);
+                                  }}
+                                  className="rounded-xl border border-red-200 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-700 transition hover:bg-red-100"
+                                >
+                                  Cancelar reservación
+                                </button>
+                              )}
+                            </div>
                           )}
                         </div>
                       )}
@@ -456,6 +528,24 @@ export function MyBookingsPage() {
           )}
         </div>
       </AsyncStateContainer>
+
+      <PaymentModal
+        isOpen={selectedReservationForPayment !== null}
+        reservacion={selectedReservationForPayment}
+        spaceName={
+          selectedReservationForPayment
+            ? espaciosMap[selectedReservationForPayment.espacioId]
+            : undefined
+        }
+        onClose={() => setSelectedReservationForPayment(null)}
+        onPaymentSuccess={() => {
+          setActionError(null);
+          setActionSuccess(
+            '¡Pago procesado con éxito! Tu reservación está confirmada.',
+          );
+          void loadBookings();
+        }}
+      />
     </section>
   );
 }

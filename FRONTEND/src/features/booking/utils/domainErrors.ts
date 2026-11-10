@@ -34,6 +34,10 @@ export function translateBookingError(error: ApiError): string {
       return 'Este espacio se encuentra temporalmente deshabilitado para nuevas reservaciones.';
     case 'EstadoReservacionInvalidoError':
       return error.message || 'Esta reservación ya no puede modificarse en su estado actual.';
+    case 'ReservacionYaPagadaError':
+      return error.message || 'Esta reservación ya cuenta con un pago registrado.';
+    case 'ReservacionNoEncontradaError':
+      return error.message || 'No encontramos la reservación seleccionada.';
     default:
       return error.message;
   }
