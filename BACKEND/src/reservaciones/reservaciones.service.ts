@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import type { IReservacionRepository } from '../dominio/contratos/reservacion.repository.interface.js';
 import type { IEspacioRepository } from '../dominio/contratos/espacio.repository.interface.js';
 import { EstadoReservacion, Reservacion } from '../dominio/entidades/reservacion.entity.js';
@@ -9,6 +9,7 @@ import {
   FechaPasadaError,
   HoraInvalidaError,
   CapacidadExcedidaError,
+  CantidadPersonasInvalidaError,
   DuracionBloqueInvalidaError,
   MinimoHorasReservaError,
   MaximoHorasReservaError,
@@ -16,8 +17,10 @@ import {
   EspacioNoEncontradoError,
   ReservacionNoEncontradaError,
   EstadoReservacionInvalidoError,
+  FechasReservaRequeridasError,
+  RangoFechasInvalidoError,
+  DominioError,
 } from '../dominio/errores/dominio.errors.js';
-import { DominioError } from '../dominio/errores/dominio.errors.js';
 import { RESERVACION_REPO_TOKEN, ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
 import { diaSemana, formatoFecha, hoy, horaAMinutos, parseFecha } from '../common/utils/fecha.util.js';
 
@@ -54,7 +57,7 @@ export class ReservacionesService {
   async crearReservacionesMultiples(solicitud: SolicitudReservacionMultiple): Promise<Reservacion[]> {
     const fechasUnicas = [...new Set(solicitud.fechas.map((f) => formatoFecha(parseFecha(f))))].sort();
     if (fechasUnicas.length === 0) {
-      throw new BadRequestException('Debes indicar al menos una fecha.');
+      throw new FechasReservaRequeridasError('Debes indicar al menos una fecha.');
     }
 
     const reservaciones: Reservacion[] = [];
@@ -129,7 +132,7 @@ export class ReservacionesService {
     }
 
     if (nuevaReservacion.cantidadPersonas <= 0) {
-      throw new CapacidadExcedidaError('La cantidad de personas debe ser de al menos 1.');
+      throw new CantidadPersonasInvalidaError('La cantidad de personas debe ser de al menos 1.');
     }
     if (nuevaReservacion.cantidadPersonas > espacio.capacidadMaxima) {
       throw new CapacidadExcedidaError(
@@ -233,10 +236,10 @@ export class ReservacionesService {
     const hasta = filtros.fecha ?? filtros.hasta;
 
     if ((desde && !hasta) || (!desde && hasta)) {
-      throw new BadRequestException('Para filtrar por rango indica fechaInicio y fechaFin.');
+      throw new RangoFechasInvalidoError('Para filtrar por rango indica fechaInicio y fechaFin.');
     }
     if (desde && hasta && parseFecha(hasta) < parseFecha(desde)) {
-      throw new BadRequestException('fechaFin no puede ser anterior a fechaInicio.');
+      throw new RangoFechasInvalidoError('fechaFin no puede ser anterior a fechaInicio.');
     }
 
     const base = desde && hasta

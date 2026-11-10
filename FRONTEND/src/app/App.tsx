@@ -1,97 +1,100 @@
-import { useLocation, navigate, safeReturnTo } from './navigation.js';
-import { useEffect, type ReactNode } from 'react';
-import { SiteLayout } from './SiteLayout.js';
-import { useSession } from './SessionProvider.js';
-import { CatalogPage } from '../features/catalog/pages/CatalogPage.js';
-import { SpaceDetailPage } from '../features/catalog/pages/SpaceDetailPage.js';
-import { LoginPage, RegisterPage } from '../features/auth/pages/AuthPages.js';
+import type { ReactNode } from 'react';
+import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import {
-  AccountPage,
-  ReservationsPage,
-} from '../features/account/pages/AccountPages.js';
+  LoginPage,
+  RegisterPage,
+  SessionProvider,
+  useSession,
+} from '../features/auth';
+import { MyBookingsPage } from '../features/booking';
+import { CatalogPage, SpaceDetailPage } from '../features/catalog';
+import { SiteLayout } from './SiteLayout';
 
-function RequireSession({
-  children,
-  currentLocation,
-}: {
-  children: ReactNode;
-  currentLocation: string;
-}) {
+function RequireSession({ children }: { children: ReactNode }) {
   const { user } = useSession();
-  useEffect(() => {
-    if (!user)
-      navigate(`/login?returnTo=${encodeURIComponent(currentLocation)}`, true);
-  }, [user, currentLocation]);
-  if (!user)
-    return (
-      <div className="page-wrap">
-        <p className="quiet-message">Te llevamos a iniciar sesión…</p>
-      </div>
-    );
+  const location = useLocation();
+
+  if (!user) {
+    const from = `${location.pathname}${location.search}`;
+    return <Navigate to="/login" replace state={{ from }} />;
+  }
+
+  return <>{children}</>;
+}
+
+function GuestOnly({ children }: { children: ReactNode }) {
+  const { user } = useSession();
+  const location = useLocation();
+
+  if (user) {
+    const state = location.state as { from?: string } | null;
+    const destination =
+    state?.from && state.from.startsWith('/') && !state.from.startsWith('//')
+      ? state.from
+      : '/';
+    return <Navigate to={destination} replace />;
+  }
+
   return <>{children}</>;
 }
 
 function NotFoundPage() {
   return (
-    <section className="not-found page-wrap">
-      <span className="eyebrow eyebrow-muted">ERROR 404</span>
-      <h1>Este lugar no aparece en el mapa.</h1>
-      <p>
-        Puede que el enlace haya cambiado o que el espacio ya no esté
-        disponible.
+    <section className="mx-auto max-w-2xl px-4 py-20 text-center sm:px-6">
+      <span className="inline-flex items-center rounded-full bg-stone-200 px-3 py-1 font-mono text-xs font-semibold text-stone-700">
+        404
+      </span>
+      <h1 className="mt-4 text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">
+        No encontramos esta página.
+      </h1>
+      <p className="mt-3 text-sm leading-relaxed text-stone-600">
+        Puede que el enlace haya cambiado o que la dirección no exista en el
+        portal.
       </p>
-      <button className="button button-dark" onClick={() => navigate('/')}>
-        Volver al inicio
-      </button>
+      <Link
+        to="/"
+        className="mt-6 inline-flex items-center rounded-xl bg-[#23312b] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#354b42]"
+      >
+        Volver al catálogo
+      </Link>
     </section>
   );
 }
 
 export function App() {
-  const location = useLocation();
-  const { user } = useSession();
-  const [path, query = ''] = location.split('?');
-  const params = new URLSearchParams(query.split('#')[0]);
-  const currentLocation = location;
-  let page: React.ReactNode;
-
-  if (path === '/' || path === '/spaces') page = <CatalogPage />;
-  else if (path === '/login')
-    page = user ? (
-      <Redirect to={safeReturnTo(params.get('returnTo'))} />
-    ) : (
-      <LoginPage returnTo={params.get('returnTo')} />
-    );
-  else if (path === '/register') page = <RegisterPage />;
-  else if (path === '/account')
-    page = (
-      <RequireSession currentLocation={currentLocation}>
-        <AccountPage />
-      </RequireSession>
-    );
-  else if (path === '/reservations')
-    page = (
-      <RequireSession currentLocation={currentLocation}>
-        <ReservationsPage />
-      </RequireSession>
-    );
-  else {
-    const detail = path.match(/^\/spaces\/([^/]+)$/);
-    page = detail ? (
-      <SpaceDetailPage id={decodeURIComponent(detail[1])} />
-    ) : (
-      <NotFoundPage />
-    );
-  }
-
-  return <SiteLayout>{page}</SiteLayout>;
-}
-
-function Redirect({ to }: { to: string }) {
-  useEffect(() => navigate(to, true), [to]);
   return (
-    <div className="page-wrap">
-      <p className="quiet-message">Abriendo tu espacio…</p>
-    </div>
+    <SessionProvider>
+      <SiteLayout>
+        <Routes>
+          <Route path="/" element={<CatalogPage />} />
+          <Route
+            path="/login"
+            element={
+              <GuestOnly>
+                <LoginPage />
+              </GuestOnly>
+            }
+          />
+          <Route
+            path="/registro"
+            element={
+              <GuestOnly>
+                <RegisterPage />
+              </GuestOnly>
+            }
+          />
+          <Route path="/espacios/:id" element={<SpaceDetailPage />} />
+          <Route
+            path="/mis-reservaciones"
+            element={
+              <RequireSession>
+                <MyBookingsPage />
+              </RequireSession>
+            }
+          />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </SiteLayout>
+    </SessionProvider>
   );
 }

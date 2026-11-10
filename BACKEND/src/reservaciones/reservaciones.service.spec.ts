@@ -17,11 +17,13 @@ import {
   MinimoHorasReservaError,
   MaximoHorasReservaError,
   CapacidadExcedidaError,
+  CantidadPersonasInvalidaError,
   FueraDeHorarioError,
   BloqueoAdministrativoError,
   EmpalmeReservacionError,
   EstadoReservacionInvalidoError,
   ReservacionNoEncontradaError,
+  FechasReservaRequeridasError,
 } from '../dominio/errores/dominio.errors.js';
 
 describe('ReservacionesService - Reglas de Negocio', () => {
@@ -195,6 +197,26 @@ describe('ReservacionesService - Reglas de Negocio', () => {
 
     it('debe lanzar ReservacionNoEncontradaError si el ID no existe', async () => {
       await expect(service.confirmarReservacion('inexistente')).rejects.toThrow(ReservacionNoEncontradaError);
+    });
+
+    it('debe lanzar CantidadPersonasInvalidaError si cantidadPersonas es <= 0', async () => {
+      const fecha = getFechaFutura(5, 1);
+      const res = new Reservacion('r-zero', fecha, '10:00', '12:00', EstadoReservacion.PENDIENTE, 'espacio-1', 'u-1', '', 0, 0);
+      await expect(service.crearReservacion(res)).rejects.toThrow(CantidadPersonasInvalidaError);
+    });
+
+    it('debe lanzar FechasReservaRequeridasError si se solicitan múltiples reservas sin fechas', async () => {
+      await expect(
+        service.crearReservacionesMultiples({
+          fechas: [],
+          horaInicio: '10:00',
+          horaFin: '12:00',
+          espacioId: 'espacio-1',
+          usuarioId: 'u-1',
+          cantidadPersonas: 2,
+          generarId: () => 'id-1',
+        }),
+      ).rejects.toThrow(FechasReservaRequeridasError);
     });
   });
 });

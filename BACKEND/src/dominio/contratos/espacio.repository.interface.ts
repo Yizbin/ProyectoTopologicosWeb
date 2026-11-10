@@ -8,11 +8,11 @@ export interface IEspacioRepository {
     listarEspacios(activoSolo?: boolean): Promise<Espacio[]>;
     guardarEspacio(espacio: Espacio): Promise<void>;
     obtenerHorariosPorEspacio(espacioId: string): Promise<HorarioAtencion[]>;
-    /** Reemplaza todo el horario semanal del espacio (borra y crea en una transacción). */
     reemplazarHorarios(espacioId: string, horarios: HorarioAtencion[]): Promise<void>;
     obtenerHorariosPorEspacioYDia(espacioId: string, diaSemana: number): Promise<HorarioAtencion[]>;
     obtenerBloqueosPorEspacioYFecha(espacioId: string, fecha: Date): Promise<Bloqueo[]>;
     obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]>;
     guardarBloqueo(bloqueo: Bloqueo): Promise<void>;
     obtenerSedePorId(id: string): Promise<Sede | null>;
+    guardarSede(sede: Sede): Promise<void>;
 }

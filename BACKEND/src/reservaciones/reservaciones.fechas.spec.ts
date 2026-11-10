@@ -8,7 +8,7 @@ import { Espacio, TipoEspacio } from '../dominio/entidades/espacio.entity.js';
 import { HorarioAtencion } from '../dominio/entidades/horario-atencion.entity.js';
 import { Sede } from '../dominio/entidades/sede.entity.js';
 import { Reservacion, EstadoReservacion } from '../dominio/entidades/reservacion.entity.js';
-import { BloqueoAdministrativoError, FueraDeHorarioError, EmpalmeReservacionError } from '../dominio/errores/dominio.errors.js';
+import { BloqueoAdministrativoError, FueraDeHorarioError, EmpalmeReservacionError, RangoFechasInvalidoError } from '../dominio/errores/dominio.errors.js';
 import { diaSemana, parseFecha } from '../common/utils/fecha.util.js';
 import { NOMBRES_DIA, proximaFecha } from '../testing/fechas.js';
 import { randomUUID } from 'node:crypto';
@@ -39,7 +39,7 @@ describe('Reservaciones - día de la semana correcto (bug UTC vs hora local)', (
 
       for (let d = 0; d <= 6; d++) {
         const fecha = proximaFecha(d);
-        expect(diaSemana(parseFecha(fecha))).toBe(d); 
+        expect(diaSemana(parseFecha(fecha))).toBe(d);
         const intento = service.crearReservacion(nuevaReservacion(fecha));
         if (d === dia) {
           await expect(intento).resolves.toBeUndefined();
@@ -70,7 +70,7 @@ describe('Reservaciones - día de la semana correcto (bug UTC vs hora local)', (
 
   it('un bloqueo de un solo día afecta únicamente a ese día (lunes), no al domingo ni al martes', async () => {
     prepararEspacio([0, 1, 2]);
-    const espacios = new EspaciosService(espacioRepo, {} as any, new DisponibilidadService(espacioRepo, reservacionRepo));
+    const espacios = new EspaciosService(espacioRepo, new DisponibilidadService(espacioRepo, reservacionRepo));
     const lunes = proximaFecha(1);
     await espacios.crearBloqueo('espacio-1', { fechaInicio: lunes, fechaFin: lunes, horaInicio: '09:00', horaFin: '18:00', motivo: 'Mantenimiento' });
 
@@ -139,6 +139,7 @@ describe('Listado administrativo de reservaciones', () => {
     expect((await service.listarReservaciones({ fecha: parseFecha(lun), espacioId: 'e1' })).map((x) => x.id)).toEqual(['d', 'b']);
     expect((await service.listarReservaciones({ desde: parseFecha(lun), hasta: parseFecha(mar), estado: EstadoReservacion.CONFIRMADA })).map((x) => x.id)).toEqual(['d']);
     expect(await service.listarReservaciones()).toHaveLength(4);
-    await expect(service.listarReservaciones({ desde: parseFecha(lun) })).rejects.toThrow('fechaInicio y fechaFin');
+    await expect(service.listarReservaciones({ desde: parseFecha(lun) })).rejects.toThrow(RangoFechasInvalidoError);
+    await expect(service.listarReservaciones({ desde: parseFecha(mar), hasta: parseFecha(lun) })).rejects.toThrow(RangoFechasInvalidoError);
   });
 });

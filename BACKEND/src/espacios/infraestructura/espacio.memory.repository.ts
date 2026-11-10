@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import { IEspacioRepository } from '@/dominio/contratos/espacio.repository.interface';
-import { Espacio } from '@/dominio/entidades/espacio.entity';
-import { HorarioAtencion } from '@/dominio/entidades/horario-atencion.entity';
-import { Bloqueo } from '@/dominio/entidades/bloqueo.entity';
-import { Sede } from '@/dominio/entidades/sede.entity';
+import type { IEspacioRepository } from '../../dominio/contratos/espacio.repository.interface.js';
+import { Espacio } from '../../dominio/entidades/espacio.entity.js';
+import { HorarioAtencion } from '../../dominio/entidades/horario-atencion.entity.js';
+import { Bloqueo } from '../../dominio/entidades/bloqueo.entity.js';
+import { Sede } from '../../dominio/entidades/sede.entity.js';
 import { formatoFecha } from '../../common/utils/fecha.util.js';
 
 @Injectable()
@@ -11,14 +11,14 @@ export class EspacioMemoryRepository implements IEspacioRepository {
     public espacios: Espacio[] = [];
     public horarios: HorarioAtencion[] = [];
     public bloqueos: Bloqueo[] = [];
-    public sedes: Sede[] = []; 
+    public sedes: Sede[] = [];
 
     async obtenerEspacioPorId(id: string): Promise<Espacio | null> {
         return this.espacios.find(e => e.id === id) || null;
     }
 
     async listarEspacios(activoSolo = true): Promise<Espacio[]> {
-        return activoSolo ? this.espacios.filter(e => e.activo) : this.espacios;
+        return activoSolo ? this.espacios.filter(e => e.activo) : [...this.espacios];
     }
 
     async guardarEspacio(espacio: Espacio): Promise<void> {
@@ -32,6 +32,15 @@ export class EspacioMemoryRepository implements IEspacioRepository {
 
     async obtenerSedePorId(id: string): Promise<Sede | null> {
         return this.sedes.find(s => s.id === id) || null;
+    }
+
+    async guardarSede(sede: Sede): Promise<void> {
+        const index = this.sedes.findIndex(s => s.id === sede.id);
+        if (index !== -1) {
+            this.sedes[index] = sede;
+        } else {
+            this.sedes.push(sede);
+        }
     }
 
     async obtenerHorariosPorEspacio(espacioId: string): Promise<HorarioAtencion[]> {

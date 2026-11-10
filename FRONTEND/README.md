@@ -1,31 +1,27 @@
-# Portal del cliente
+# Portal del Cliente
 
-Aplicación independiente de React y Vite para el storefront. El servidor NestJS se ejecuta por separado.
+Aplicación independiente de React, Vite, TypeScript y Tailwind CSS para el portal público del cliente. El servidor NestJS (`BACKEND/`) se ejecuta por separado; este portal no incluye vistas ni acciones administrativas.
 
 ## Requisitos
 
 - Node.js 20.19+ (o 22.12+)
 - npm
-- API del servicio disponible en la URL configurada
+- API del servicio (`BACKEND/`) ejecutándose y accesible desde la URL configurada
 
 ## Instalar y ejecutar
 
-```powershell
-cd storefront
+
+cd FRONTEND
 npm install
-Copy-Item .env.example .env
+Configurar .env
 npm run dev
-```
 
-Vite inicia el portal en `http://localhost:5173`. En `storefront/.env`, configura `VITE_API_BASE_URL` con la dirección base del backend. El backend debe permitir `http://localhost:5173` en su variable `ALLOWED_ORIGINS`.
 
-Para generar el portal de producción: `npm run build`. Para validar sus tipos: `npm run typecheck`.
+Vite inicia el portal en `http://localhost:5173`. En `FRONTEND/.env`, configura `VITE_API_BASE_URL` apuntando al servicio del backend (por defecto `http://localhost:3000`). En `BACKEND/.env`, asegúrate de incluir `http://localhost:5173` en la variable `ALLOWED_ORIGINS`.
 
-## Organización
+### Scripts disponibles
 
-- `src/features/`: páginas y comportamiento agrupados por área del negocio.
-- `src/shared/api/`: cliente HTTP único, token, respuestas y errores del servicio.
-- `src/app/`: navegación, sesión, rutas protegidas y layout común.
-- `../src/shared/api-contracts.ts`: contratos HTTP compartidos con la API.
+- `npm run dev`: inicia el servidor de desarrollo en `http://localhost:5173`
+- `npm run typecheck`: valida todos los tipos con TypeScript (`tsc -p tsconfig.json --noEmit`)
+- `npm run build`: verifica tipos y genera el bundle de producción en `dist/`
 
-El portal solo contiene experiencias de cliente; no implementa una interfaz administrativa.

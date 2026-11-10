@@ -3,7 +3,7 @@ import { EspaciosService } from './espacios.service.js';
 import { DisponibilidadService } from './disponibilidad.service.js';
 import { EspacioMemoryRepository } from './infraestructura/espacio.memory.repository.js';
 import { ReservacionMemoryRepository } from '../reservaciones/infraestructura/reservacion.memory.repository.js';
-import { Espacio, TipoEspacio } from '../dominio/entidades/espacio.entity.js';
+import { TipoEspacio } from '../dominio/entidades/espacio.entity.js';
 import { Sede } from '../dominio/entidades/sede.entity.js';
 import { Reservacion, EstadoReservacion } from '../dominio/entidades/reservacion.entity.js';
 import { FechaPasadaError, HorarioAtencionInvalidoError, RangoHorasReservaInvalidoError } from '../dominio/errores/dominio.errors.js';
@@ -23,7 +23,7 @@ describe('Espacios - búsqueda, disponibilidad, edición y horarios', () => {
   beforeEach(() => {
     repo = new EspacioMemoryRepository();
     reservaciones = new ReservacionMemoryRepository();
-    service = new EspaciosService(repo, { sede: { create: async () => undefined } } as any, new DisponibilidadService(repo, reservaciones));
+    service = new EspaciosService(repo, new DisponibilidadService(repo, reservaciones));
     repo.sedes.push(new Sede('sede-1', 'Central', 'Calle 1', '555', '08:00', '20:00'));
   });
 

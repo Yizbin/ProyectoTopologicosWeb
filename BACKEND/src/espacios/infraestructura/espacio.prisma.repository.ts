@@ -65,6 +65,27 @@ export class EspacioPrismaRepository implements IEspacioRepository {
     return row ? this.mapearASede(row) : null;
   }
 
+  async guardarSede(sede: Sede): Promise<void> {
+    await this.prisma.sede.upsert({
+      where: { id: sede.id },
+      update: {
+        nombre: sede.nombre,
+        direccion: sede.direccion,
+        telefonoActivo: sede.telefonoActivo,
+        horaAperturaGeneral: sede.horaAperturaGeneral,
+        horaCierreGeneral: sede.horaCierreGeneral,
+      },
+      create: {
+        id: sede.id,
+        nombre: sede.nombre,
+        direccion: sede.direccion,
+        telefonoActivo: sede.telefonoActivo,
+        horaAperturaGeneral: sede.horaAperturaGeneral,
+        horaCierreGeneral: sede.horaCierreGeneral,
+      },
+    });
+  }
+
   async obtenerHorariosPorEspacio(espacioId: string): Promise<HorarioAtencion[]> {
     const rows = await this.prisma.horarioAtencion.findMany({
       where: { espacioId },

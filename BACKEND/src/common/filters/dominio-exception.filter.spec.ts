@@ -6,6 +6,10 @@ import {
   EmpalmeReservacionError,
   FueraDeHorarioError,
   BloqueoAdministrativoError,
+  SedeNoEncontradaError,
+  CantidadPersonasInvalidaError,
+  FechasReservaRequeridasError,
+  RangoFechasInvalidoError,
 } from '../../dominio/errores/dominio.errors.js';
 
 describe('DominioExceptionFilter', () => {
@@ -91,6 +95,27 @@ describe('DominioExceptionFilter', () => {
         success: false,
         statusCode: 409,
         tipoError: 'BloqueoAdministrativoError',
+      }),
+    );
+  });
+
+  it.each([
+    [new SedeNoEncontradaError(), 'SedeNoEncontradaError'],
+    [new CantidadPersonasInvalidaError(), 'CantidadPersonasInvalidaError'],
+    [new FechasReservaRequeridasError(), 'FechasReservaRequeridasError'],
+    [new RangoFechasInvalidoError(), 'RangoFechasInvalidoError'],
+  ])('debe atrapar %o y retornar HTTP 409 con su tipoError semántico', (error, expectedTipo) => {
+    const { hostMock, statusMock, jsonMock } = createMockHost();
+
+    filter.catch(error, hostMock);
+
+    expect(statusMock).toHaveBeenCalledWith(HttpStatus.CONFLICT);
+    expect(jsonMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        statusCode: 409,
+        message: error.message,
+        tipoError: expectedTipo,
       }),
     );
   });

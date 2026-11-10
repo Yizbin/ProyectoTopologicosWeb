@@ -111,3 +111,27 @@ export class PagoEstadoInvalidoError extends DominioError {
         super(mensaje);
     }
 }
+
+export class SedeNoEncontradaError extends DominioError {
+    constructor(mensaje: string = "La sede especificada no existe.") {
+        super(mensaje);
+    }
+}
+
+export class CantidadPersonasInvalidaError extends DominioError {
+    constructor(mensaje: string = "La cantidad de personas debe ser de al menos 1.") {
+        super(mensaje);
+    }
+}
+
+export class FechasReservaRequeridasError extends DominioError {
+    constructor(mensaje: string = "Debes indicar al menos una fecha para reservar.") {
+        super(mensaje);
+    }
+}
+
+export class RangoFechasInvalidoError extends DominioError {
+    constructor(mensaje: string = "El rango de fechas indicado no es válido.") {
+        super(mensaje);
+    }
+}

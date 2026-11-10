@@ -6,6 +6,7 @@ import {
   Body,
   Param,
   Query,
+  BadRequestException,
   NotFoundException,
   ForbiddenException,
   UseGuards,
@@ -30,7 +31,7 @@ type UsuarioToken = { id: string; rol: RolUsuario };
 
 @Controller('reservaciones')
 export class ReservacionesController {
-  constructor(private readonly reservacionesService: ReservacionesService) {}
+  constructor(private readonly reservacionesService: ReservacionesService) { }
 
   private esAdmin(user: UsuarioToken): boolean {
     return user.rol === RolUsuario.ADMIN;
@@ -95,10 +96,19 @@ export class ReservacionesController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.ADMIN)
   async listar(@Query() query: ListarReservacionesQueryDto): Promise<Reservacion[]> {
+    if ((query.fechaInicio && !query.fechaFin) || (!query.fechaInicio && query.fechaFin)) {
+      throw new BadRequestException('Para filtrar por rango indica fechaInicio y fechaFin.');
+    }
+    const desde = query.fechaInicio ? parseFecha(query.fechaInicio) : undefined;
+    const hasta = query.fechaFin ? parseFecha(query.fechaFin) : undefined;
+    if (desde && hasta && hasta < desde) {
+      throw new BadRequestException('fechaFin no puede ser anterior a fechaInicio.');
+    }
+
     return this.reservacionesService.listarReservaciones({
       fecha: query.fecha ? parseFecha(query.fecha) : undefined,
-      desde: query.fechaInicio ? parseFecha(query.fechaInicio) : undefined,
-      hasta: query.fechaFin ? parseFecha(query.fechaFin) : undefined,
+      desde,
+      hasta,
       espacioId: query.espacioId,
       estado: query.estado,
     });

@@ -1,123 +1,94 @@
-# Sistema de Reservas y Agenda - API Backend
+# Sistema de Reservas y Agenda — Frontend / Backend
 
-Plataforma integral para la gestión de citas, espacios y reservaciones en tiempo real con control de disponibilidad, autenticación JWT, control de accesos basado en roles y persistencia relacional con Prisma ORM y MySQL.
+Sistema web para consulta de espacios, verificación de disponibilidad en tiempo real y gestión de reservaciones, dividido en dos aplicaciones independientes dentro del mismo repositorio:
 
----
+- **`BACKEND/`**: API REST en **NestJS** con arquitectura limpia (Clean Architecture), reglas de dominio encapsuladas, autenticación JWT con control de acceso por roles (`CLIENTE` / `ADMIN`), documentación Swagger y persistencia en **MySQL** vía **Prisma ORM**.
 
-## Requisitos Previos
-
-- **Node.js**: v20 o superior 
-- **MySQL**: Instancia local (puerto por defecto: `3306`)
-- **Gestor de paquetes**: `npm`
+- **`FRONTEND/`**: Portal público del cliente (**Storefront**) en **React 19 + Vite + TypeScript + Tailwind CSS**, organizado por características (`auth`, `catalog`, `booking`) y conectado a la API mediante Axios e interceptores centralizados. *Este portal es exclusivamente para clientes finales y no contiene panel ni acciones de administración.*
 
 ---
 
-## Guía de Instalación y Puesta en Marcha
+## Guía de Arranque Rápido (5 Pasos)
 
-### 1. Clonar el repositorio e instalar dependencias
+### Paso 1. Instalar dependencias en ambas aplicaciones
 
+Desde la raíz del monorepo, instala los paquetes de `BACKEND/` y `FRONTEND/`:
+
+
+cd BACKEND
 npm install
 
-### 2. Configurar variables de entorno
 
-Crea un archivo `.env` en la raíz del proyecto basado en `.env.example`:
+cd ..\FRONTEND
+npm install
 
-Configura en tu archivo `.env` la cadena de conexión a tu base de datos y la clave secreta para la firma de tokens JWT:
 
-DATABASE_URL="mysql://usuario:password@localhost:3306/sistema_reservas"
 
-JWT_SECRET="super_secreto_jwt_para_sistema_reservas_2026"
+### Paso 2. Configurar variables de entorno
 
-### 3. Ejecutar migraciones de la base de datos
+1. En `BACKEND/`, crea el archivo `BACKEND/.env` tomando como base `BACKEND/.env.example`:
 
-Aplica el esquema y crea las tablas correspondientes en MySQL:
+   DATABASE_URL="mysql://usuario:password@localhost:3306/sistema_reservas"
+   JWT_SECRET="super_secreto_jwt_para_sistema_reservas_2026"
+   ALLOWED_ORIGINS="http://localhost:5173"
 
+
+2. En `FRONTEND/`, copia `FRONTEND/.env.example` hacia `FRONTEND/.env`:
+
+   Verifica que `FRONTEND/.env` contenga `VITE_API_BASE_URL="http://localhost:3000"`.
+
+### Paso 3. Ejecutar migraciones y poblar datos de semilla (Seeder)
+
+Con MySQL encendido y la base de datos creada, ejecuta las migraciones y la semilla desde `BACKEND/`:
+
+
+cd BACKEND
 npx prisma migrate dev
-
-### 4. Poblar la base de datos con datos iniciales (Seeder)
-
-Inserta los datos de arranque necesarios para recorrer todos los casos de uso (usuarios de prueba con contraseñas encriptadas en bcrypt, sede, espacios y horarios de atención):
-
-npx prisma db seed
-
-También puedes ejecutar `npm run seed`.
-
-### 5. Iniciar el servidor en modo desarrollo
-
-npm run start:dev
-
-## Documentación (Swagger)
-
-Una vez iniciado el servidor, puedes explorar y probar todos los endpoints del servicio desde la interfaz interactiva de Swagger UI en:
-
-- **[http://localhost:3000/api/docs](http://localhost:3000/api/docs)**
-
-Para probar endpoints protegidos desde Swagger:
-1. Envía una petición `POST /auth/login` con las credenciales correspondientes.
-2. Copia el valor de `access_token` retornado.
-3. Haz clic en el botón **Authorize** (arriba a la derecha en Swagger) y pega el token.
+npx prisma db seed (O tambien: npm run seed)
 
 
+### Paso 4. Levantar los servidores
 
-## Cuentas de Prueba Precargadas (Seeder)
+- **Terminal 1 — API Backend (`http://localhost:3000`)**:
 
+  cd BACKEND
+  npm run start:dev
+  
 
-**ADMIN** 
-- `admin@seeder.com`
-- `Admin123*` 
-- Gestión total de espacios
-- Creación de bloqueos
-- Confirmación de reservaciones y consulta de usuarios. 
+- **Terminal 2 — Portal del Cliente (`http://localhost:5173`)**:
 
-**CLIENTE**
-`cliente@seeder.com` 
-`Cliente123*` 
-- Creación y consulta de reservaciones propias
-- Consulta pública del catálogo de espacios y horarios.
+  cd FRONTEND
+  npm run dev
 
 
+### Paso 5. Verificar el funcionamiento
 
-## Control de Accesos y Seguridad
-
-- **Públicos:**
-  - `GET /espacios` (Listado de espacios disponibles)
-  - `GET /espacios/:id` (Detalle de un espacio)
-  - `GET /espacios/:id/horarios` (Horarios de atención)
-  - `GET /espacios/:id/bloqueos` (Fechas bloqueadas)
-  - `POST /auth/login` (Inicio de sesión)
-  - `POST /auth/registro` (Registro de cliente)
-
-- **Usuarios Autenticados (Con el JwtAuthGuard):**
-  - `POST /reservaciones` (Creación de reservas con validación de disponibilidad y no empalme)
-  - `GET /reservaciones/:id` (Consulta de reservación)
-  - `GET /reservaciones/cliente/:usuarioId` (Historial de reservas del cliente)
-  - `PATCH /reservaciones/:id/cancelar` (Cancelación y liberación de horario)
-
-- **Administradores (`@Roles(RolUsuario.ADMIN)`):**
-  - `POST /espacios` (Registro de nuevos espacios)
-  - `POST /espacios/:id/bloqueos` (Bloqueo administrativo de fechas y horas)
-  - `PATCH /reservaciones/:id/confirmar` (Confirmar reservación)
-  - `PATCH /reservaciones/:id/completar` (Completar reservación)
-  - `GET /usuarios` (Listado general de usuarios)
-
-> **Comprobaciones:**
-> - Petición a endpoint administrativo sin token = **HTTP 401 Unauthorized**.
-> - Petición a endpoint administrativo con token de rol `CLIENTE` = **HTTP 403 Forbidden**.
-> - Petición con token de rol `ADMIN` = **HTTP 200 / 201 Success**.
+- **Portal del Cliente (Storefront)**: [http://localhost:5173](http://localhost:5173)
+- **Documentación interactiva Swagger (API)**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ---
 
-## Ejecución de Pruebas
+## Cuentas Precargadas 
 
-Para verificar la integridad del dominio, los filtros globales y las reglas de seguridad:
+| Rol | Correo | Contraseña | Uso principal |
 
+| `CLIENTE` | `cliente@sistema.local` | `Cliente123*` | Cuenta para probar reservas |
+| `CLIENTE` | `cliente@seeder.com` | `Cliente123*` | Cuenta cliente secundaria |
+| `ADMIN` | `admin@seeder.com` | `Admin123*` | Exclusiva para pruebas de endpoints administrativos  |
 
-# Ejecutar todas las pruebas unitarias y de integración
-npm test
+---
 
-# Ejecutar verificación de tipos TypeScript
-npm run typecheck
+## Ejecución de pruebas y validaciones
 
-# Validar reglas de negocio puras del dominio
+Desde `BACKEND/`:
+
+npm test              
+npm run typecheck     
+npm run lint          
 npm run prueba:avance
+
+Desde `FRONTEND/`:
+
+npm run typecheck    
+npm run build        
 

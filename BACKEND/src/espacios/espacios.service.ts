@@ -4,14 +4,15 @@ import type { IEspacioRepository } from '../dominio/contratos/espacio.repository
 import { Espacio, TipoEspacio } from '../dominio/entidades/espacio.entity.js';
 import { HorarioAtencion } from '../dominio/entidades/horario-atencion.entity.js';
 import { Bloqueo } from '../dominio/entidades/bloqueo.entity.js';
+import { Sede } from '../dominio/entidades/sede.entity.js';
 import {
   RangoHorasReservaInvalidoError,
   HoraInvalidaError,
   EspacioNoEncontradoError,
   HorarioAtencionInvalidoError,
+  SedeNoEncontradaError,
 } from '../dominio/errores/dominio.errors.js';
 import { ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
-import { PrismaService } from '../prisma/prisma.service.js';
 import { CrearEspacioDto } from './dto/crear-espacio.dto.js';
 import { ActualizarEspacioDto } from './dto/actualizar-espacio.dto.js';
 import { CrearBloqueoDto } from './dto/crear-bloqueo.dto.js';
@@ -33,7 +34,6 @@ export type EspacioBuscado = Espacio & { horariosLibres?: BloqueHorario[] };
 export class EspaciosService {
   constructor(
     @Inject(ESPACIO_REPO_TOKEN) private readonly espacioRepo: IEspacioRepository,
-    private readonly prisma: PrismaService,
     private readonly disponibilidad: DisponibilidadService,
   ) { }
 
@@ -49,16 +49,16 @@ export class EspaciosService {
 
     const sede = await this.espacioRepo.obtenerSedePorId(dto.sedeId);
     if (!sede) {
-      await this.prisma.sede.create({
-        data: {
-          id: dto.sedeId,
-          nombre: 'Sede Principal',
-          direccion: 'Dirección Principal',
-          telefonoActivo: '555-0100',
-          horaAperturaGeneral: '08:00',
-          horaCierreGeneral: '20:00',
-        },
-      });
+      await this.espacioRepo.guardarSede(
+        new Sede(
+          dto.sedeId,
+          'Sede Principal',
+          'Dirección Principal',
+          '555-0100',
+          '08:00',
+          '20:00',
+        ),
+      );
     }
 
     const amenidades = Array.isArray(dto.amenidades)
@@ -105,7 +105,7 @@ export class EspaciosService {
     if (dto.sedeId && dto.sedeId !== actual.sedeId) {
       const sede = await this.espacioRepo.obtenerSedePorId(dto.sedeId);
       if (!sede) {
-        throw new NotFoundException(`La sede con ID ${dto.sedeId} no fue encontrada.`);
+        throw new SedeNoEncontradaError(`La sede con ID ${dto.sedeId} no fue encontrada.`);
       }
     }
 

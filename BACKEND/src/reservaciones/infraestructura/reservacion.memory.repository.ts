@@ -40,7 +40,9 @@ export class ReservacionMemoryRepository implements IReservacionRepository {
     }
 
     async obtenerPorUsuarioId(usuarioId: string): Promise<Reservacion[]> {
-        return this.reservaciones.filter(r => r.usuarioId === usuarioId);
+        return this.reservaciones
+            .filter(r => r.usuarioId === usuarioId)
+            .sort((a, b) => b.fecha.getTime() - a.fecha.getTime() || b.horaInicio.localeCompare(a.horaInicio));
     }
 
     async obtenerTodas(): Promise<Reservacion[]> {
