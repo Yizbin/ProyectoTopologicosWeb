@@ -9,8 +9,14 @@ import {
 import { Type } from 'class-transformer';
 
 export class CrearReservacionDto {
-  @IsNotEmpty({ message: 'La fecha es obligatoria' })
-  @IsDateString({}, { message: 'La fecha debe tener un formato ISO válido (YYYY-MM-DD)' })
+  @IsNotEmpty({ message: 'La fecha es obligatoria.' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, {
+    message: 'La fecha debe tener el formato YYYY-MM-DD.',
+  })
+  @IsDateString(
+    { strict: true },
+    { message: 'La fecha indicada no existe en el calendario.' },
+  )
   fecha!: string;
 
   @IsNotEmpty({ message: 'La hora de inicio es obligatoria' })

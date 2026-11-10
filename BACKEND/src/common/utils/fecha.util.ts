@@ -4,7 +4,23 @@ export function parseFecha(valor: string | Date): Date {
   if (typeof valor === 'string') {
     const m = SOLO_FECHA.exec(valor);
     if (m) {
-      return new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+      const year = Number(m[1]);
+      const month = Number(m[2]);
+      const day = Number(m[3]);
+
+      const fecha = new Date(0);
+      fecha.setUTCFullYear(year, month - 1, day);
+      fecha.setUTCHours(0, 0, 0, 0);
+
+      if (
+        fecha.getUTCFullYear() !== year ||
+        fecha.getUTCMonth() + 1 !== month ||
+        fecha.getUTCDate() !== day
+      ) {
+        throw new RangeError('Fecha inválida.');
+      }
+
+      return fecha;
     }
     valor = new Date(valor);
   }
@@ -44,4 +60,27 @@ export function minutosAHora(minutos: number): string {
   const h = Math.floor(minutos / 60).toString().padStart(2, '0');
   const m = (minutos % 60).toString().padStart(2, '0');
   return `${h}:${m}`;
+}
+
+export function inicioYaPaso(
+  fecha: Date,
+  horaInicio: string,
+  ahora: Date = new Date(),
+): boolean {
+  const diaReserva = parseFecha(fecha).getTime();
+  const diaActual = hoy(ahora).getTime();
+
+  if (diaReserva < diaActual) return true;
+  if (diaReserva > diaActual) return false;
+
+  const inicioMilisegundos =
+    horaAMinutos(horaInicio) * 60_000;
+
+  const actualMilisegundos =
+    ahora.getHours() * 3_600_000 +
+    ahora.getMinutes() * 60_000 +
+    ahora.getSeconds() * 1_000 +
+    ahora.getMilliseconds();
+
+  return inicioMilisegundos <= actualMilisegundos;
 }

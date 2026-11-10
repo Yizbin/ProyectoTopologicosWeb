@@ -22,7 +22,7 @@ import {
   DominioError,
 } from '../dominio/errores/dominio.errors.js';
 import { RESERVACION_REPO_TOKEN, ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
-import { diaSemana, formatoFecha, hoy, horaAMinutos, parseFecha } from '../common/utils/fecha.util.js';
+import { diaSemana, formatoFecha, hoy, horaAMinutos, parseFecha, inicioYaPaso } from '../common/utils/fecha.util.js';
 
 export interface FiltrosListadoReservaciones {
   fecha?: Date;
@@ -94,8 +94,15 @@ export class ReservacionesService {
     nuevaReservacion.fecha = parseFecha(nuevaReservacion.fecha);
     const fechaReserva = nuevaReservacion.fecha;
 
-    if (fechaReserva.getTime() < hoy().getTime()) {
-      throw new FechaPasadaError();
+    if (
+      inicioYaPaso(
+        fechaReserva,
+        nuevaReservacion.horaInicio,
+      )
+    ) {
+      throw new FechaPasadaError(
+        'La fecha y hora de inicio deben ser posteriores al momento actual.',
+      );
     }
 
     const minInicio = horaAMinutos(nuevaReservacion.horaInicio);

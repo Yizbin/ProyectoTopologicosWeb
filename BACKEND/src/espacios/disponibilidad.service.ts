@@ -12,6 +12,7 @@ import {
   horaAMinutos,
   minutosAHora,
   parseFecha,
+  inicioYaPaso,
 } from '../common/utils/fecha.util.js';
 
 export interface BloqueHorario {
@@ -21,8 +22,8 @@ export interface BloqueHorario {
 
 export interface OcupacionDia extends BloqueHorario {
   tipo: 'RESERVACION' | 'BLOQUEO';
-  estado?: string; 
-  motivo?: string; 
+  estado?: string;
+  motivo?: string;
 }
 
 export interface DisponibilidadDia {
@@ -32,7 +33,7 @@ export interface DisponibilidadDia {
   abierto: boolean;
   horariosAtencion: { horaApertura: string; horaCierre: string }[];
   ocupados: OcupacionDia[];
-  libres: BloqueHorario[]; 
+  libres: BloqueHorario[];
 }
 
 @Injectable()
@@ -40,7 +41,7 @@ export class DisponibilidadService {
   constructor(
     @Inject(ESPACIO_REPO_TOKEN) private readonly espacioRepo: IEspacioRepository,
     @Inject(RESERVACION_REPO_TOKEN) private readonly reservacionRepo: IReservacionRepository,
-  ) {}
+  ) { }
 
   async obtenerDisponibilidad(espacioId: string, fecha: Date): Promise<DisponibilidadDia> {
     const espacio = await this.espacioRepo.obtenerEspacioPorId(espacioId);
@@ -70,6 +71,7 @@ export class DisponibilidadService {
       ...bloqueos.map((b): OcupacionDia => ({ tipo: 'BLOQUEO', horaInicio: b.horaInicio, horaFin: b.horaFin, motivo: b.motivo })),
     ].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
 
+    const ahora = new Date();
     const libres: BloqueHorario[] = [];
     if (espacio.activo) {
       for (const h of horarios) {
@@ -78,7 +80,12 @@ export class DisponibilidadService {
         for (let t = apertura; t + espacio.duracionMinutos <= cierre; t += espacio.duracionMinutos) {
           const bloque = { horaInicio: minutosAHora(t), horaFin: minutosAHora(t + espacio.duracionMinutos) };
           const ocupado = ocupados.some((o) => bloque.horaInicio < o.horaFin && bloque.horaFin > o.horaInicio);
-          if (!ocupado) libres.push(bloque);
+          if (
+            !ocupado &&
+            !inicioYaPaso(fecha, bloque.horaInicio, ahora)
+          ) {
+            libres.push(bloque);
+          }
         }
       }
     }

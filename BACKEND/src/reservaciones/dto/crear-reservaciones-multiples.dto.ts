@@ -14,10 +14,11 @@ import { Type } from 'class-transformer';
 
 export class CrearReservacionesMultiplesDto {
   @IsArray({ message: 'fechas debe ser una lista de fechas.' })
-  @ArrayMinSize(1, { message: 'Debes indicar al menos una fecha.' })
-  @ArrayMaxSize(31, { message: 'No puedes reservar más de 31 fechas a la vez.' })
+  @ArrayMinSize(1, { message: 'Debes indicar al menos una fecha.',})
+  @ArrayMaxSize(31, { message: 'No puedes reservar más de 31 fechas a la vez.',})
   @ArrayUnique({ message: 'No repitas fechas.' })
-  @IsDateString({}, { each: true, message: 'Cada fecha debe tener formato ISO (YYYY-MM-DD).' })
+  @Matches(/^\d{4}-\d{2}-\d{2}$/, { each: true, message: 'Cada fecha debe tener el formato YYYY-MM-DD.',})
+  @IsDateString({ strict: true }, { each: true, message: 'Todas las fechas deben existir en el calendario.', },)
   fechas!: string[];
 
   @IsNotEmpty({ message: 'La hora de inicio es obligatoria' })

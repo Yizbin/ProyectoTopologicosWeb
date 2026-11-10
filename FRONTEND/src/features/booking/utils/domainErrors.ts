@@ -13,7 +13,7 @@ export function translateBookingError(error: ApiError): string {
     case 'FueraDeHorarioError':
       return error.message || 'El horario solicitado está fuera del horario de atención disponible para este espacio.';
     case 'FechaPasadaError':
-      return 'No puedes reservar ni consultar fechas anteriores al día de hoy.';
+      return error.message || 'Selecciona una fecha y hora de inicio futuras.';
     case 'HoraInvalidaError':
       return 'La hora de fin debe ser estrictamente posterior a la hora de inicio.';
     case 'CapacidadExcedidaError':
