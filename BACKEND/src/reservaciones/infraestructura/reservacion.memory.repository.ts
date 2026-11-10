@@ -1,20 +1,41 @@
 import { Injectable } from '@nestjs/common/decorators/core/index.js';
 import { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
-import { Reservacion } from '../../dominio/entidades/reservacion.entity.js';
 import { formatoFecha } from '../../common/utils/fecha.util.js';
+import { Reservacion, EstadoReservacion, } from '../../dominio/entidades/reservacion.entity.js';
+import { EmpalmeReservacionError, } from '../../dominio/errores/dominio.errors.js';
 
 @Injectable()
 export class ReservacionMemoryRepository implements IReservacionRepository {
     private reservaciones: Reservacion[] = [];
 
     async guardar(reservacion: Reservacion): Promise<void> {
-        this.reservaciones.push(reservacion);
+        await this.guardarVarias([reservacion]);
     }
 
     async guardarVarias(reservaciones: Reservacion[]): Promise<void> {
-        this.reservaciones.push(...reservaciones);
-    }
+        const verificadas: Reservacion[] = [];
 
+        for (const nueva of reservaciones) {
+            const conflicto = [...this.reservaciones, ...verificadas].some(
+                (existente) =>
+                    existente.espacioId === nueva.espacioId &&
+                    formatoFecha(existente.fecha) === formatoFecha(nueva.fecha) &&
+                    (
+                        existente.estado === EstadoReservacion.PENDIENTE ||
+                        existente.estado === EstadoReservacion.CONFIRMADA
+                    ) &&
+                    existente.horaInicio < nueva.horaFin &&
+                    existente.horaFin > nueva.horaInicio,
+            );
+
+            if (conflicto) {
+                throw new EmpalmeReservacionError();
+            }
+
+            verificadas.push(nueva);
+        }
+        this.reservaciones.push(...verificadas);
+    }
     async obtenerPorPagoId(pagoId: string): Promise<Reservacion | null> {
         return this.reservaciones.find(r => r.pagoId === pagoId) || null;
     }

@@ -205,6 +205,67 @@ describe('ReservacionesService - Reglas de Negocio', () => {
       await expect(service.crearReservacion(res)).rejects.toThrow(CantidadPersonasInvalidaError);
     });
 
+    it('rechaza una de dos reservas simultáneas que se empalman', async () => {
+      const fecha = getFechaFutura(7, 1);
+
+      const primera = new Reservacion(
+        'concurrente-1',
+        fecha,
+        '10:00',
+        '12:00',
+        EstadoReservacion.PENDIENTE,
+        'espacio-1',
+        'u-1',
+        '',
+        1,
+        0,
+      );
+
+      const segunda = new Reservacion(
+        'concurrente-2',
+        fecha,
+        '11:00',
+        '13:00',
+        EstadoReservacion.PENDIENTE,
+        'espacio-1',
+        'u-2',
+        '',
+        1,
+        0,
+      );
+
+      const resultados = await Promise.allSettled([
+        service.crearReservacion(primera),
+        service.crearReservacion(segunda),
+      ]);
+
+      const exitosas = resultados.filter(
+        (resultado) => resultado.status === 'fulfilled',
+      );
+
+      const fallidas = resultados.filter(
+        (resultado) => resultado.status === 'rejected',
+      );
+
+      expect(exitosas).toHaveLength(1);
+      expect(fallidas).toHaveLength(1);
+
+      const fallo = fallidas[0];
+
+      if (!fallo || fallo.status !== 'rejected') {
+        throw new Error('Se esperaba una reservación rechazada.');
+      }
+
+      expect(fallo.reason).toBeInstanceOf(EmpalmeReservacionError);
+
+      const guardadas = await reservacionRepo.obtenerPorEspacioYFecha(
+        'espacio-1',
+        fecha,
+      );
+
+      expect(guardadas).toHaveLength(1);
+    });
+
     it('debe lanzar FechasReservaRequeridasError si se solicitan múltiples reservas sin fechas', async () => {
       await expect(
         service.crearReservacionesMultiples({
