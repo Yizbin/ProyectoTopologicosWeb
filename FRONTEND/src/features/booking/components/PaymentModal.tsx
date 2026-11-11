@@ -282,9 +282,6 @@ export function PaymentModal({
                 <strong className="font-semibold">
                   No se pudo procesar el pago
                 </strong>
-                <span className="rounded-full bg-red-100 px-2 py-0.5 font-mono text-[11px] font-medium text-red-800">
-                  {paymentError.tipoError}
-                </span>
               </div>
               <p className="mt-1 text-xs leading-relaxed text-red-800">
                 {translateBookingError(paymentError)}

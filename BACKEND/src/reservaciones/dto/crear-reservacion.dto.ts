@@ -1,3 +1,4 @@
+import type { CrearReservacionRequest } from '../../shared/api-contracts.js';
 import {
   IsString,
   IsNotEmpty,
@@ -8,7 +9,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CrearReservacionDto {
+export class CrearReservacionDto implements CrearReservacionRequest {
   @IsNotEmpty({ message: 'La fecha es obligatoria.' })
   @Matches(/^\d{4}-\d{2}-\d{2}$/, {
     message: 'La fecha debe tener el formato YYYY-MM-DD.',

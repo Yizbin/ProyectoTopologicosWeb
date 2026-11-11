@@ -1,3 +1,4 @@
+import type { CrearReservacionesMultiplesRequest } from '../../shared/api-contracts.js';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -12,7 +13,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-export class CrearReservacionesMultiplesDto {
+export class CrearReservacionesMultiplesDto implements CrearReservacionesMultiplesRequest {
   @IsArray({ message: 'fechas debe ser una lista de fechas.' })
   @ArrayMinSize(1, { message: 'Debes indicar al menos una fecha.',})
   @ArrayMaxSize(31, { message: 'No puedes reservar más de 31 fechas a la vez.',})

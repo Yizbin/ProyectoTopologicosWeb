@@ -208,9 +208,6 @@ export function LoginPage() {
                 <strong className="font-semibold">
                   No se pudo iniciar sesión
                 </strong>
-                <span className="rounded-full bg-red-100 px-2 py-0.5 font-mono text-xs text-red-800">
-                  {apiError.tipoError}
-                </span>
               </div>
               <p className="mt-1 text-red-800">{apiError.message}</p>
             </div>

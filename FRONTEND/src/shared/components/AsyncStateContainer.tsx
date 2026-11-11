@@ -90,9 +90,6 @@ export function AsyncStateContainer({
                 <h3 className="m-0 text-sm font-semibold text-red-900">
                   No se pudo completar la operación
                 </h3>
-                <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 font-mono text-xs font-medium text-red-800 ring-1 ring-inset ring-red-200">
-                  {error.tipoError}
-                </span>
               </div>
               <p className="m-0 text-sm leading-relaxed text-red-800">
                 {error.message}

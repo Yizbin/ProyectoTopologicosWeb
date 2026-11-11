@@ -1,3 +1,4 @@
+import type { RegistroPagoResponse } from '../shared/api-contracts.js';
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { PagosService } from './pagos.service.js';
 import type { UsuarioAutenticado } from './pagos.service.js';
@@ -18,7 +19,7 @@ export class PagosController {
   async registrarPago(
     @Body() dto: CrearPagoDto,
     @CurrentUser() user: UsuarioAutenticado,
-  ): Promise<{ cantidad: number; total: number; pagos: Pago[] }> {
+  ): Promise<RegistroPagoResponse> {
     const pagos = await this.pagosService.registrarPago(dto, user);
     return {
       cantidad: pagos.length,

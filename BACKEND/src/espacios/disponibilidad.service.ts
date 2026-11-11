@@ -15,26 +15,8 @@ import {
   inicioYaPaso,
 } from '../common/utils/fecha.util.js';
 
-export interface BloqueHorario {
-  horaInicio: string;
-  horaFin: string;
-}
-
-export interface OcupacionDia extends BloqueHorario {
-  tipo: 'RESERVACION' | 'BLOQUEO';
-  estado?: string;
-  motivo?: string;
-}
-
-export interface DisponibilidadDia {
-  espacioId: string;
-  fecha: string; // YYYY-MM-DD
-  diaSemana: number; // 0 = domingo y 6 = sabado
-  abierto: boolean;
-  horariosAtencion: { horaApertura: string; horaCierre: string }[];
-  ocupados: OcupacionDia[];
-  libres: BloqueHorario[];
-}
+import type { BloqueHorario, OcupacionDia, DisponibilidadDia } from '../shared/api-contracts.js';
+export type { BloqueHorario, OcupacionDia, DisponibilidadDia } from '../shared/api-contracts.js';
 
 @Injectable()
 export class DisponibilidadService {

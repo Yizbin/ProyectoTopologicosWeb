@@ -1,3 +1,4 @@
+import type { CrearPagoRequest } from '../../shared/api-contracts.js';
 import {
   ArrayMaxSize,
   ArrayMinSize,
@@ -10,7 +11,7 @@ import {
 } from 'class-validator';
 import { MetodoPago } from '../../dominio/entidades/pago.entity.js';
 
-export class CrearPagoDto {
+export class CrearPagoDto implements CrearPagoRequest {
   @IsArray({ message: 'reservacionIds debe ser una lista.' })
   @ArrayMinSize(1, { message: 'Indica al menos una reservación a pagar.' })
   @ArrayMaxSize(31)

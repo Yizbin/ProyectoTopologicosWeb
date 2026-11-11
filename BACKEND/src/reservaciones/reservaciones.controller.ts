@@ -1,3 +1,4 @@
+import type { ReservacionesMultiplesResponse, CancelarReservacionResponse } from '../shared/api-contracts.js';
 import {
   Controller,
   Get,
@@ -79,7 +80,7 @@ export class ReservacionesController {
   async crearReservacionesMultiples(
     @Body() dto: CrearReservacionesMultiplesDto,
     @CurrentUser() user: UsuarioToken,
-  ): Promise<{ cantidad: number; total: number; reservaciones: Reservacion[] }> {
+  ): Promise<ReservacionesMultiplesResponse> {
     const reservaciones = await this.reservacionesService.crearReservacionesMultiples({
       ...dto,
       usuarioId: user.id,
@@ -138,7 +139,7 @@ export class ReservacionesController {
   @Patch(':id/confirmar')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.ADMIN)
-  async confirmar(@Param('id') id: string): Promise<{ mensaje: string; reservacion: Reservacion | null }> {
+  async confirmar(@Param('id') id: string): Promise<CancelarReservacionResponse> {
     await this.reservacionesService.confirmarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
     return { mensaje: 'Reservación confirmada exitosamente', reservacion };
@@ -147,7 +148,7 @@ export class ReservacionesController {
   @Patch(':id/completar')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.ADMIN)
-  async completar(@Param('id') id: string): Promise<{ mensaje: string; reservacion: Reservacion | null }> {
+  async completar(@Param('id') id: string): Promise<CancelarReservacionResponse> {
     await this.reservacionesService.completarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
     return { mensaje: 'Reservación completada exitosamente', reservacion };
@@ -158,7 +159,7 @@ export class ReservacionesController {
   async cancelar(
     @Param('id') id: string,
     @CurrentUser() user: UsuarioToken,
-  ): Promise<{ mensaje: string; reservacion: Reservacion | null }> {
+  ): Promise<CancelarReservacionResponse> {
     await this.obtenerAutorizada(id, user);
     await this.reservacionesService.cancelarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
