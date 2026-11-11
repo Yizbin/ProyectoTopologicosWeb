@@ -22,7 +22,7 @@ import {
   DominioError,
 } from '../dominio/errores/dominio.errors.js';
 import { RESERVACION_REPO_TOKEN, ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
-import { diaSemana, formatoFecha, hoy, horaAMinutos, parseFecha, inicioYaPaso } from '../common/utils/fecha.util.js';
+import { diaSemana, formatoFecha, horaAMinutos, parseFecha, inicioYaPaso } from '../common/utils/fecha.util.js';
 
 export interface FiltrosListadoReservaciones {
   fecha?: Date;
@@ -194,8 +194,9 @@ export class ReservacionesService {
     if (res.estado !== EstadoReservacion.PENDIENTE) {
       throw new EstadoReservacionInvalidoError('Solo se pueden confirmar reservas pendientes.');
     }
-    res.estado = EstadoReservacion.CONFIRMADA;
-    await this.reservacionRepo.actualizar(res);
+    if (!await this.reservacionRepo.cambiarEstado(id, EstadoReservacion.PENDIENTE, EstadoReservacion.CONFIRMADA)) {
+      throw new EstadoReservacionInvalidoError('La reservación cambió de estado. Actualiza e inténtalo nuevamente.');
+    }
   }
 
   async completarReservacion(id: string): Promise<void> {
@@ -206,8 +207,9 @@ export class ReservacionesService {
     if (res.estado !== EstadoReservacion.CONFIRMADA) {
       throw new EstadoReservacionInvalidoError('Solo se pueden completar reservas confirmadas.');
     }
-    res.estado = EstadoReservacion.COMPLETADA;
-    await this.reservacionRepo.actualizar(res);
+    if (!await this.reservacionRepo.cambiarEstado(id, EstadoReservacion.CONFIRMADA, EstadoReservacion.COMPLETADA)) {
+      throw new EstadoReservacionInvalidoError('La reservación cambió de estado. Actualiza e inténtalo nuevamente.');
+    }
   }
 
   async cancelarReservacion(id: string): Promise<void> {
@@ -218,8 +220,13 @@ export class ReservacionesService {
     if (res.estado === EstadoReservacion.COMPLETADA || res.estado === EstadoReservacion.CANCELADA) {
       throw new EstadoReservacionInvalidoError('No se puede cancelar una reservación completada o ya cancelada.');
     }
-    res.estado = EstadoReservacion.CANCELADA;
-    await this.reservacionRepo.actualizar(res);
+    const ahora = new Date();
+    if (inicioYaPaso(res.fecha, res.horaInicio, ahora)) {
+      throw new FechaPasadaError('Solo se pueden cancelar reservaciones que todavía no han comenzado.');
+    }
+    if (!await this.reservacionRepo.cambiarEstado(id, res.estado, EstadoReservacion.CANCELADA, ahora)) {
+      throw new EstadoReservacionInvalidoError('La reservación cambió de estado. Actualiza e inténtalo nuevamente.');
+    }
   }
 
   async obtenerHistorialCliente(usuarioId: string): Promise<Reservacion[]> {

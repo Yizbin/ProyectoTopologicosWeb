@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common/decorators/core/index.js';
 import { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
-import { formatoFecha } from '../../common/utils/fecha.util.js';
+import { formatoFecha, inicioYaPaso } from '../../common/utils/fecha.util.js';
 import { Reservacion, EstadoReservacion, } from '../../dominio/entidades/reservacion.entity.js';
 import { EmpalmeReservacionError, } from '../../dominio/errores/dominio.errors.js';
 
@@ -51,6 +51,14 @@ export class ReservacionMemoryRepository implements IReservacionRepository {
     async obtenerPorId(id: string): Promise<Reservacion | null> {
         const reservacion = this.reservaciones.find(r => r.id === id);
         return reservacion || null;
+    }
+
+    async cambiarEstado(id: string, esperado: EstadoReservacion, nuevo: EstadoReservacion, noIniciadaDesde?: Date): Promise<boolean> {
+        const reserva = this.reservaciones.find(r => r.id === id);
+        if (!reserva || reserva.estado !== esperado) return false;
+        if (noIniciadaDesde && inicioYaPaso(reserva.fecha, reserva.horaInicio, noIniciadaDesde)) return false;
+        reserva.estado = nuevo;
+        return true;
     }
 
     async actualizar(reservacion: Reservacion): Promise<void> {

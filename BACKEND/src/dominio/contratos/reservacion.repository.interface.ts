@@ -1,4 +1,4 @@
-import { Reservacion } from '../entidades/reservacion.entity.js';
+import { Reservacion, EstadoReservacion } from '../entidades/reservacion.entity.js';
 
 export interface IReservacionRepository {
     guardar(reservacion: Reservacion): Promise<void>;
@@ -8,6 +8,7 @@ export interface IReservacionRepository {
     obtenerPorPagoId(pagoId: string): Promise<Reservacion | null>;
     obtenerPorUsuarioId(usuarioId: string): Promise<Reservacion[]>;
     actualizar(reservacion: Reservacion): Promise<void>;
+    cambiarEstado(id: string, esperado: EstadoReservacion, nuevo: EstadoReservacion, noIniciadaDesde?: Date): Promise<boolean>;
     obtenerTodas(): Promise<Reservacion[]>;
     obtenerPorRangoFechas(fechaInicio: Date, fechaFin: Date, espacioId?: string): Promise<Reservacion[]>;
 }

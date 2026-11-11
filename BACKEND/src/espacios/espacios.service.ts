@@ -195,7 +195,7 @@ export class EspaciosService {
       throw new HoraInvalidaError('La fecha de fin del bloqueo no puede ser anterior a la fecha de inicio.');
     }
 
-    if (fInicio.getTime() === fFin.getTime() && dto.horaFin <= dto.horaInicio) {
+    if (dto.horaFin <= dto.horaInicio) {
       throw new HoraInvalidaError('La hora de fin del bloqueo debe ser estrictamente posterior a la hora de inicio.');
     }
 

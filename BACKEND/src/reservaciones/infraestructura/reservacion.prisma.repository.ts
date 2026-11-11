@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import type { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
 import { Reservacion, EstadoReservacion as DominioEstadoReservacion } from '../../dominio/entidades/reservacion.entity.js';
 import type { EstadoReservacion as PrismaEstadoReservacion } from '../../generated/prisma/enums.js';
-import { parseFecha, sumarDias } from '../../common/utils/fecha.util.js';
+import { hoy, parseFecha, sumarDias } from '../../common/utils/fecha.util.js';
 import { EmpalmeReservacionError, EspacioNoEncontradoError,} from '../../dominio/errores/dominio.errors.js';
 
 @Injectable()
@@ -156,6 +156,32 @@ export class ReservacionPrismaRepository implements IReservacionRepository {
       orderBy: [{ fecha: 'asc' }, { horaInicio: 'asc' }],
     });
     return rows.map((r) => this.mapearAReservacion(r));
+  }
+
+  async cambiarEstado(
+    id: string,
+    esperado: DominioEstadoReservacion,
+    nuevo: DominioEstadoReservacion,
+    noIniciadaDesde?: Date,
+  ): Promise<boolean> {
+    const dia = noIniciadaDesde ? hoy(noIniciadaDesde) : undefined;
+    const hora = noIniciadaDesde
+      ? `${String(noIniciadaDesde.getHours()).padStart(2, '0')}:${String(noIniciadaDesde.getMinutes()).padStart(2, '0')}`
+      : undefined;
+    const resultado = await this.prisma.reservacion.updateMany({
+      where: {
+        id,
+        estado: this.mapDominioAPrismaEstado(esperado),
+        ...(dia && hora ? {
+          OR: [
+            { fecha: { gt: dia } },
+            { fecha: dia, horaInicio: { gt: hora } },
+          ],
+        } : {}),
+      },
+      data: { estado: this.mapDominioAPrismaEstado(nuevo) },
+    });
+    return resultado.count === 1;
   }
 
   async actualizar(reservacion: Reservacion): Promise<void> {

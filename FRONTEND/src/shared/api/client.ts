@@ -119,12 +119,12 @@ axiosInstance.interceptors.response.use(
 
     if (status === 401 || status === 403) {
       const hadToken = Boolean(getAuthToken());
-      clearAuthToken();
+      if (status === 401) clearAuthToken();
 
       const isPublicAuthRoute =
         requestUrl.includes('/auth/login') || requestUrl.includes('/auth/registro');
 
-      if (typeof window !== 'undefined' && hadToken && !isPublicAuthRoute) {
+      if (status === 401 && typeof window !== 'undefined' && hadToken && !isPublicAuthRoute) {
         window.dispatchEvent(
           new CustomEvent(SESSION_EXPIRED_EVENT, { detail: { status } }),
         );

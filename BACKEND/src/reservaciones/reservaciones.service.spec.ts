@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ReservacionesService } from './reservaciones.service.js';
 import { EspacioMemoryRepository } from '../espacios/infraestructura/espacio.memory.repository.js';
 import { ReservacionMemoryRepository } from './infraestructura/reservacion.memory.repository.js';
@@ -197,6 +197,43 @@ describe('ReservacionesService - Reglas de Negocio', () => {
 
     it('debe lanzar ReservacionNoEncontradaError si el ID no existe', async () => {
       await expect(service.confirmarReservacion('inexistente')).rejects.toThrow(ReservacionNoEncontradaError);
+    });
+
+    it('conserva un pago registrado después de leer la reserva al confirmar', async () => {
+      const res = new Reservacion('r-pago', getFechaFutura(), '10:00', '12:00', EstadoReservacion.PENDIENTE, 'espacio-1', 'u-1', '', 2, 400);
+      await reservacionRepo.guardar(res);
+      const leer = reservacionRepo.obtenerPorId.bind(reservacionRepo);
+      vi.spyOn(reservacionRepo, 'obtenerPorId').mockImplementationOnce(async (id) => {
+        const actual = (await leer(id))!;
+        const copia = { ...actual };
+        actual.pagoId = 'pago-nuevo';
+        return copia;
+      });
+      await service.confirmarReservacion(res.id);
+      expect((await leer(res.id))?.pagoId).toBe('pago-nuevo');
+    });
+
+    it('no revive una reserva cancelada con una confirmación que leyó el estado anterior', async () => {
+      const res = new Reservacion('r-race', getFechaFutura(), '10:00', '12:00', EstadoReservacion.PENDIENTE, 'espacio-1', 'u-1', '', 2, 400);
+      await reservacionRepo.guardar(res);
+      const leer = reservacionRepo.obtenerPorId.bind(reservacionRepo);
+      vi.spyOn(reservacionRepo, 'obtenerPorId').mockImplementation(async (id) => {
+        const actual = await leer(id);
+        return actual ? { ...actual } : null;
+      });
+      const resultados = await Promise.allSettled([
+        service.cancelarReservacion(res.id),
+        service.confirmarReservacion(res.id),
+      ]);
+      expect(resultados.map(r => r.status)).toEqual(['fulfilled', 'rejected']);
+      expect((await leer(res.id))?.estado).toBe(EstadoReservacion.CANCELADA);
+    });
+
+    it('rechaza cancelar una reserva cuyo inicio ya pasó', async () => {
+      const res = new Reservacion('r-pasada', new Date('2020-01-01'), '10:00', '12:00', EstadoReservacion.PENDIENTE, 'espacio-1', 'u-1', '', 2, 400);
+      await reservacionRepo.guardar(res);
+      await expect(service.cancelarReservacion(res.id)).rejects.toThrow(FechaPasadaError);
+      expect(res.estado).toBe(EstadoReservacion.PENDIENTE);
     });
 
     it('debe lanzar CantidadPersonasInvalidaError si cantidadPersonas es <= 0', async () => {

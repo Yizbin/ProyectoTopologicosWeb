@@ -72,13 +72,16 @@ export class DisponibilidadService {
     ].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
 
     const ahora = new Date();
+    const duracionReservable = Math.ceil(
+      espacio.minimoHorasReserva * 60 / espacio.duracionMinutos,
+    ) * espacio.duracionMinutos;
     const libres: BloqueHorario[] = [];
     if (espacio.activo) {
       for (const h of horarios) {
         const apertura = Math.max(horaAMinutos(h.horaApertura), sede ? horaAMinutos(sede.horaAperturaGeneral) : 0);
         const cierre = Math.min(horaAMinutos(h.horaCierre), sede ? horaAMinutos(sede.horaCierreGeneral) : 24 * 60);
-        for (let t = apertura; t + espacio.duracionMinutos <= cierre; t += espacio.duracionMinutos) {
-          const bloque = { horaInicio: minutosAHora(t), horaFin: minutosAHora(t + espacio.duracionMinutos) };
+        for (let t = apertura; t + duracionReservable <= cierre && duracionReservable <= espacio.maximoHorasReserva * 60; t += espacio.duracionMinutos) {
+          const bloque = { horaInicio: minutosAHora(t), horaFin: minutosAHora(t + duracionReservable) };
           const ocupado = ocupados.some((o) => bloque.horaInicio < o.horaFin && bloque.horaFin > o.horaInicio);
           if (
             !ocupado &&

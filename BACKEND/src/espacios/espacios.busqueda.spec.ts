@@ -6,7 +6,7 @@ import { ReservacionMemoryRepository } from '../reservaciones/infraestructura/re
 import { TipoEspacio } from '../dominio/entidades/espacio.entity.js';
 import { Sede } from '../dominio/entidades/sede.entity.js';
 import { Reservacion, EstadoReservacion } from '../dominio/entidades/reservacion.entity.js';
-import { FechaPasadaError, HorarioAtencionInvalidoError, RangoHorasReservaInvalidoError } from '../dominio/errores/dominio.errors.js';
+import { FechaPasadaError, HoraInvalidaError, HorarioAtencionInvalidoError, RangoHorasReservaInvalidoError } from '../dominio/errores/dominio.errors.js';
 import { parseFecha } from '../common/utils/fecha.util.js';
 import { proximaFecha } from '../testing/fechas.js';
 
@@ -25,6 +25,36 @@ describe('Espacios - búsqueda, disponibilidad, edición y horarios', () => {
     reservaciones = new ReservacionMemoryRepository();
     service = new EspaciosService(repo, new DisponibilidadService(repo, reservaciones));
     repo.sedes.push(new Sede('sede-1', 'Central', 'Calle 1', '555', '08:00', '20:00'));
+  });
+
+  it('no ofrece disponibilidad si no cabe la duración mínima', async () => {
+    const e = await service.crearEspacio(dtoEspacio({ minimoHorasReserva: 2,
+      horarios: [{ diaSemana: 1, horaApertura: '10:00', horaCierre: '11:00' }],
+    }));
+    const fecha = parseFecha(proximaFecha(1));
+    expect((await service.obtenerDisponibilidad(e.id, fecha)).libres).toEqual([]);
+    expect(await service.buscarEspacios({ fecha })).toEqual([]);
+  });
+
+  it('ofrece ventanas que cumplen el mínimo sin atravesar horas ocupadas', async () => {
+    const e = await service.crearEspacio(dtoEspacio({ minimoHorasReserva: 2,
+      horarios: [{ diaSemana: 1, horaApertura: '09:00', horaCierre: '14:00' }],
+    }));
+    const fecha = parseFecha(proximaFecha(1));
+    await reservaciones.guardar(new Reservacion('ocupada', fecha, '11:00', '12:00', EstadoReservacion.CONFIRMADA, e.id, 'u', '', 1, 100));
+    expect((await service.obtenerDisponibilidad(e.id, fecha)).libres).toEqual([
+      { horaInicio: '09:00', horaFin: '11:00' },
+      { horaInicio: '12:00', horaFin: '14:00' },
+    ]);
+  });
+
+  it('rechaza una franja de bloqueo invertida incluso para varios días', async () => {
+    const e = await service.crearEspacio(dtoEspacio());
+    await expect(service.crearBloqueo(e.id, {
+      fechaInicio: '2030-01-07', fechaFin: '2030-01-08',
+      horaInicio: '18:00', horaFin: '09:00', motivo: 'Mantenimiento',
+    })).rejects.toThrow(HoraInvalidaError);
+    expect(repo.bloqueos).toHaveLength(0);
   });
 
   describe('crear y editar con horarios', () => {

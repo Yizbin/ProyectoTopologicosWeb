@@ -242,7 +242,7 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
       const res = await request(app.getHttpServer())
         .post('/reservaciones')
         .send({
-          fecha: '2026-11-01T10:00:00.000Z',
+          fecha: '2026-11-01',
           horaInicio: '10:00',
           horaFin: '11:00',
           espacioId: 'espacio-1',
@@ -260,7 +260,7 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
         .post('/reservaciones')
         .set('Authorization', `Bearer ${tokenCliente}`)
         .send({
-          fecha: '2026-11-01T10:00:00.000Z',
+          fecha: '2026-11-01',
           horaInicio: '10:00',
           horaFin: '11:00',
           espacioId: 'espacio-1',
