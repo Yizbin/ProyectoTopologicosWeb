@@ -9,4 +9,5 @@ export interface IPagoRepository {
     guardarConReservaciones(items: PagoConReservacion[]): Promise<void>;
     obtenerPorId(id: string): Promise<Pago | null>;
     actualizar(pago: Pago): Promise<void>;
+    completarSiReservacionVigente(id: string): Promise<Pago>;
 }

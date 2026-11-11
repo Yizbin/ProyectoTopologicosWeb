@@ -1,20 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiClient } from '../../../shared/api/client';
-import type {
-  ApiError,
-  CancelarReservacionResponse,
-  Espacio,
-  EstadoReservacion,
-  Reservacion,
-} from '../../../shared/api/types';
+import type { ApiError, CancelarReservacionResponse, Espacio, EstadoReservacion, Reservacion, } from '../../../shared/api/types';
 import { AsyncStateContainer } from '../../../shared/components/AsyncStateContainer';
 import { useSession } from '../../auth/SessionProvider';
 import { PaymentModal } from '../components/PaymentModal';
-import {
-  normalizeApiError,
-  translateBookingError,
-} from '../utils/domainErrors';
+import { normalizeApiError, translateBookingError, } from '../utils/domainErrors';
 
 const STATUS_BADGE_CLASSES: Record<EstadoReservacion, string> = {
   pendiente: 'bg-amber-100 text-amber-900 ring-amber-200',
@@ -50,9 +41,6 @@ function getIsoDateOnly(value: Date | string): string {
 }
 
 function getEffectiveEstado(reservacion: Reservacion): EstadoReservacion {
-  if (reservacion.estado === 'pendiente' && Boolean(reservacion.pagoId)) {
-    return 'confirmada';
-  }
   return reservacion.estado;
 }
 
@@ -324,8 +312,8 @@ export function MyBookingsPage() {
                   espaciosMap[reservacion.espacioId] ??
                   `Espacio #${reservacion.espacioId.slice(0, 8)}`;
                 const effectiveEstado = getEffectiveEstado(reservacion);
-                const isPaid = Boolean(reservacion.pagoId);
-                const canPay = effectiveEstado === 'pendiente';
+                const hasPayment = Boolean(reservacion.pagoId);
+                const canPay = effectiveEstado === 'pendiente' && !hasPayment;
                 const canCancel =
                   effectiveEstado === 'pendiente' ||
                   effectiveEstado === 'confirmada';
@@ -347,7 +335,7 @@ export function MyBookingsPage() {
                           >
                             {STATUS_LABELS[effectiveEstado]}
                           </span>
-                          {isPaid && (
+                          {hasPayment && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-stone-100 px-2.5 py-1 text-[11px] font-medium text-stone-700 ring-1 ring-inset ring-stone-200">
                               <svg
                                 aria-hidden="true"
@@ -361,7 +349,7 @@ export function MyBookingsPage() {
                               >
                                 <polyline points="20 6 9 17 4 12" />
                               </svg>
-                              Pagada
+                              Pago registrado
                             </span>
                           )}
                         </div>
@@ -541,7 +529,7 @@ export function MyBookingsPage() {
         onPaymentSuccess={() => {
           setActionError(null);
           setActionSuccess(
-            '¡Pago procesado con éxito! Tu reservación está confirmada.',
+            'Pago registrado con éxito. Consulta el estado actual de tu reservación.',
           );
           void loadBookings();
         }}

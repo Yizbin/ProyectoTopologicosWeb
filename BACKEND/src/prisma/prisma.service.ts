@@ -8,7 +8,12 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     if (!process.env.DATABASE_URL) {
       process.loadEnvFile?.('.env');
     }
-    const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
+    const databaseUrl = new URL(process.env.DATABASE_URL!);
+    const esConexionLocal = ['localhost', '127.0.0.1', '[::1]'].includes(databaseUrl.hostname);
+    if (esConexionLocal && !databaseUrl.searchParams.has('allowPublicKeyRetrieval')) {
+      databaseUrl.searchParams.set('allowPublicKeyRetrieval', 'true');
+    }
+    const adapter = new PrismaMariaDb(databaseUrl.toString());
     super({ adapter });
   }
 

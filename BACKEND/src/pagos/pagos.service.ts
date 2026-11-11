@@ -5,13 +5,7 @@ import type { IReservacionRepository } from '../dominio/contratos/reservacion.re
 import { EstadoPago, MetodoPago, Pago } from '../dominio/entidades/pago.entity.js';
 import { EstadoReservacion, Reservacion } from '../dominio/entidades/reservacion.entity.js';
 import { RolUsuario } from '../dominio/entidades/usuario.entity.js';
-import {
-  EstadoReservacionInvalidoError,
-  PagoEstadoInvalidoError,
-  PagoNoEncontradoError,
-  ReservacionNoEncontradaError,
-  ReservacionYaPagadaError,
-} from '../dominio/errores/dominio.errors.js';
+import { EstadoReservacionInvalidoError, PagoNoEncontradoError, ReservacionNoEncontradaError, ReservacionYaPagadaError, } from '../dominio/errores/dominio.errors.js';
 import { PAGO_REPO_TOKEN, RESERVACION_REPO_TOKEN } from '../tokens/tokens.js';
 import { CrearPagoDto } from './dto/crear-pago.dto.js';
 
@@ -72,15 +66,6 @@ export class PagosService {
 
   /** Admin: confirma un pago en efectivo que estaba PENDIENTE. */
   async completarPago(id: string): Promise<Pago> {
-    const pago = await this.pagoRepo.obtenerPorId(id);
-    if (!pago) {
-      throw new PagoNoEncontradoError(`El pago ${id} no fue encontrado.`);
-    }
-    if (pago.estado !== EstadoPago.PENDIENTE) {
-      throw new PagoEstadoInvalidoError('Solo se pueden completar pagos pendientes.');
-    }
-    pago.estado = EstadoPago.COMPLETADO;
-    await this.pagoRepo.actualizar(pago);
-    return pago;
+    return this.pagoRepo.completarSiReservacionVigente(id);
   }
 }
