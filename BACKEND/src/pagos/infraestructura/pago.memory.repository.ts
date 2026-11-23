@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import type { IPagoRepository, PagoConReservacion } from '../../dominio/contratos/pago.repository.interface.js';
+import type {
+    FiltrosListadoPagos,
+    IPagoRepository,
+    PagoConReservacion,
+    PagoDetallado,
+} from '../../dominio/contratos/pago.repository.interface.js';
 import type { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
 import { Pago, EstadoPago } from '../../dominio/entidades/pago.entity.js';
 import { EstadoReservacion } from '../../dominio/entidades/reservacion.entity.js';
@@ -55,5 +60,35 @@ export class PagoMemoryRepository implements IPagoRepository {
     async actualizar(pago: Pago): Promise<void> {
         const index = this.pagos.findIndex(p => p.id === pago.id);
         if (index !== -1) this.pagos[index] = pago;
+    }
+
+    async listarTodos(filtros: FiltrosListadoPagos = {}): Promise<PagoDetallado[]> {
+        const filtrados = this.pagos
+            .filter(p => (filtros.estado ? p.estado === filtros.estado : true))
+            .filter(p => (filtros.metodo ? p.metodo === filtros.metodo : true));
+
+        const resultado: PagoDetallado[] = [];
+        for (const p of filtrados) {
+            const reserva = await this.reservacionRepo.obtenerPorPagoId(p.id);
+            resultado.push({
+                id: p.id,
+                montoTotal: p.montoTotal,
+                estado: p.estado,
+                metodo: p.metodo,
+                referencia: p.referencia,
+                reservacion: reserva
+                    ? {
+                        id: reserva.id,
+                        fecha: reserva.fecha,
+                        horaInicio: reserva.horaInicio,
+                        horaFin: reserva.horaFin,
+                        estado: reserva.estado,
+                        espacioId: reserva.espacioId,
+                        usuarioId: reserva.usuarioId,
+                    }
+                    : null,
+            });
+        }
+        return resultado;
     }
 }

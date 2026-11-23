@@ -13,6 +13,13 @@ describe('obtenerOrigenesCors', () => {
     ]);
   });
 
+  it('soporta ambos frontends locales (React 5173 y Angular 4200)', () => {
+    expect(obtenerOrigenesCors('http://localhost:5173,http://localhost:4200')).toEqual([
+      'http://localhost:5173',
+      'http://localhost:4200',
+    ]);
+  });
+
   it('no permite orígenes cruzados si no hay configuración', () => {
     expect(obtenerOrigenesCors('')).toEqual([]);
     expect(obtenerOrigenesCors(undefined)).toEqual([]);

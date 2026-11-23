@@ -109,4 +109,14 @@ describe('PagosService', () => {
     expect((await reservaciones.obtenerPorId('r2'))?.pagoId).toBe(''); // r2 no se pagó porque el lote falló
     expect(pagos.pagos).toHaveLength(1);
   });
+
+  it('permite al admin listar pagos filtrando por estado, método y búsqueda', async () => {
+    await service.registrarPago({ reservacionIds: ['r1'], metodo: MetodoPago.TARJETA, referencia: 'REF-ALPHA' }, cliente);
+    await service.registrarPago({ reservacionIds: ['r2'], metodo: MetodoPago.EFECTIVO }, cliente);
+
+    expect(await service.listarPagos()).toHaveLength(2);
+    expect(await service.listarPagos({ estado: EstadoPago.COMPLETADO })).toHaveLength(1);
+    expect(await service.listarPagos({ metodo: MetodoPago.EFECTIVO })).toHaveLength(1);
+    expect(await service.listarPagos({ busqueda: 'ALPHA' })).toHaveLength(1);
+  });
 });

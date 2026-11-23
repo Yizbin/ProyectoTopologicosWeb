@@ -10,6 +10,7 @@ import { EspaciosModule } from './espacios/espacios.module.js';
 import { ReservacionesModule } from './reservaciones/reservaciones.module.js';
 import { PagosModule } from './pagos/pagos.module.js';
 import { PrismaModule } from './prisma/prisma.module.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 
 export const { ObserveModule, ObserveInstrument } = createObserveModule();
 
@@ -22,6 +23,7 @@ export const { ObserveModule, ObserveInstrument } = createObserveModule();
     EspaciosModule,
     ReservacionesModule,
     PagosModule,
+    DashboardModule,
   ],
   controllers: [AppController],
   providers: [AppService],

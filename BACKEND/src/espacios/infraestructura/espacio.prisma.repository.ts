@@ -65,6 +65,13 @@ export class EspacioPrismaRepository implements IEspacioRepository {
     return row ? this.mapearASede(row) : null;
   }
 
+  async listarSedes(): Promise<Sede[]> {
+    const rows = await this.prisma.sede.findMany({
+      orderBy: { nombre: 'asc' },
+    });
+    return rows.map((r) => this.mapearASede(r));
+  }
+
   async guardarSede(sede: Sede): Promise<void> {
     await this.prisma.sede.upsert({
       where: { id: sede.id },
@@ -138,6 +145,13 @@ export class EspacioPrismaRepository implements IEspacioRepository {
       orderBy: { fechaInicio: 'asc' },
     });
     return rows.map((b) => this.mapearABloqueo(b));
+  }
+
+  async obtenerBloqueoPorId(id: string): Promise<Bloqueo | null> {
+    const row = await this.prisma.bloqueo.findUnique({
+      where: { id },
+    });
+    return row ? this.mapearABloqueo(row) : null;
   }
 
   async guardarBloqueo(bloqueo: Bloqueo): Promise<void> {

@@ -76,8 +76,11 @@ export class UsuariosService {
     );
   }
 
-  async listarUsuarios(): Promise<Omit<Usuario, 'contrasena'>[]> {
+  async listarUsuarios(
+    filtros: { busqueda?: string; rol?: RolUsuario } = {},
+  ): Promise<Omit<Usuario, 'contrasena'>[]> {
     const rows = await this.prisma.usuario.findMany({
+      where: filtros.rol ? { rol: filtros.rol } : undefined,
       select: {
         id: true,
         nombre: true,
@@ -85,14 +88,26 @@ export class UsuariosService {
         telefono: true,
         rol: true,
       },
+      orderBy: { nombre: 'asc' },
     });
 
-    return rows.map((r) => ({
-      id: r.id,
-      nombre: r.nombre,
-      correo: r.correo,
-      telefono: r.telefono,
-      rol: r.rol as RolUsuario,
-    }));
+    const termino = filtros.busqueda?.trim().toLowerCase();
+
+    return rows
+      .filter((r) => {
+        if (!termino) return true;
+        return (
+          r.nombre.toLowerCase().includes(termino) ||
+          r.correo.toLowerCase().includes(termino) ||
+          r.telefono.toLowerCase().includes(termino)
+        );
+      })
+      .map((r) => ({
+        id: r.id,
+        nombre: r.nombre,
+        correo: r.correo,
+        telefono: r.telefono,
+        rol: r.rol as RolUsuario,
+      }));
   }
 }

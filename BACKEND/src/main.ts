@@ -14,7 +14,11 @@ async function bootstrap() {
   });
 
   const allowedOrigins = obtenerOrigenesCors();
-  app.enableCors({ origin: allowedOrigins });
+  app.enableCors({
+    origin: allowedOrigins,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Accept', 'Authorization'],
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

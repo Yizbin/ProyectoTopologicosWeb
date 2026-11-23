@@ -9,7 +9,7 @@ import { HorarioAtencion } from '../dominio/entidades/horario-atencion.entity.js
 import { Sede } from '../dominio/entidades/sede.entity.js';
 import { Reservacion, EstadoReservacion } from '../dominio/entidades/reservacion.entity.js';
 import { BloqueoAdministrativoError, FueraDeHorarioError, EmpalmeReservacionError, RangoFechasInvalidoError } from '../dominio/errores/dominio.errors.js';
-import { diaSemana, parseFecha } from '../common/utils/fecha.util.js';
+import { diaSemana, formatoFecha, parseFecha, sumarDias } from '../common/utils/fecha.util.js';
 import { NOMBRES_DIA, proximaFecha } from '../testing/fechas.js';
 import { randomUUID } from 'node:crypto';
 
@@ -115,7 +115,8 @@ describe('Reservaciones de varios días', () => {
   });
 
   it('es todo o nada también ante un empalme con una reservación existente', async () => {
-    const lun = proximaFecha(1), mar = proximaFecha(2);
+    const lun = proximaFecha(1);
+    const mar = formatoFecha(sumarDias(parseFecha(lun), 1));
     await service.crearReservacion(new Reservacion('r-0', parseFecha(mar), '11:00', '13:00', EstadoReservacion.PENDIENTE, 'espacio-1', 'u-2', '', 1, 0));
     await expect(service.crearReservacionesMultiples(solicitud([lun, mar]))).rejects.toThrow(EmpalmeReservacionError);
     expect(await reservacionRepo.obtenerTodas()).toHaveLength(1);
@@ -127,7 +128,8 @@ describe('Listado administrativo de reservaciones', () => {
     const espacioRepo = new EspacioMemoryRepository();
     const reservacionRepo = new ReservacionMemoryRepository();
     const service = new ReservacionesService(reservacionRepo, espacioRepo);
-    const lun = proximaFecha(1), mar = proximaFecha(2);
+    const lun = proximaFecha(1);
+    const mar = formatoFecha(sumarDias(parseFecha(lun), 1));
     const r = (id: string, f: string, ini: string, fin: string, esp: string, estado = EstadoReservacion.PENDIENTE) =>
       new Reservacion(id, parseFecha(f), ini, fin, estado, esp, 'u', '', 1, 0);
     await reservacionRepo.guardarVarias([
@@ -141,5 +143,10 @@ describe('Listado administrativo de reservaciones', () => {
     expect(await service.listarReservaciones()).toHaveLength(4);
     await expect(service.listarReservaciones({ desde: parseFecha(lun) })).rejects.toThrow(RangoFechasInvalidoError);
     await expect(service.listarReservaciones({ desde: parseFecha(mar), hasta: parseFecha(lun) })).rejects.toThrow(RangoFechasInvalidoError);
+
+    espacioRepo.espacios.push(new Espacio('e1', 'Sala Magna', 'desc', TipoEspacio.SALA, 100, true, 60, 'sede-1', 10, [], 1, 4));
+    const adminLista = await service.listarReservacionesAdmin({ busqueda: 'Magna' });
+    expect(adminLista.map((x) => x.id)).toEqual(['d', 'b', 'a']);
+    expect(adminLista[0].espacio?.nombre).toBe('Sala Magna');
   });
 });

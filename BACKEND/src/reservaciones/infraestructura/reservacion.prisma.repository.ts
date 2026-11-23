@@ -1,10 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
+import type {
+  FiltrosReservacionesDetalladas,
+  IReservacionRepository,
+  ReservacionDetallada,
+} from '../../dominio/contratos/reservacion.repository.interface.js';
 import { Reservacion, EstadoReservacion as DominioEstadoReservacion } from '../../dominio/entidades/reservacion.entity.js';
+import { TipoEspacio } from '../../dominio/entidades/espacio.entity.js';
+import { EstadoPago, MetodoPago } from '../../dominio/entidades/pago.entity.js';
 import type { EstadoReservacion as PrismaEstadoReservacion } from '../../generated/prisma/enums.js';
 import { hoy, parseFecha, sumarDias } from '../../common/utils/fecha.util.js';
-import { EmpalmeReservacionError, EspacioNoEncontradoError,} from '../../dominio/errores/dominio.errors.js';
+import {
+  EmpalmeReservacionError,
+  EspacioNoEncontradoError,
+  UsuarioNoEncontradoError,
+} from '../../dominio/errores/dominio.errors.js';
 
 @Injectable()
 export class ReservacionPrismaRepository implements IReservacionRepository {
@@ -26,80 +36,90 @@ export class ReservacionPrismaRepository implements IReservacionRepository {
   }
 
   async guardar(reservacion: Reservacion): Promise<void> {
-  await this.guardarVarias([reservacion]);
-}
+    await this.guardarVarias([reservacion]);
+  }
 
   async guardarVarias(reservaciones: Reservacion[]): Promise<void> {
-  if (reservaciones.length === 0) return;
+    if (reservaciones.length === 0) return;
 
-  const espacioIds = [
-    ...new Set(reservaciones.map((r) => r.espacioId)),
-  ].sort();
+    const espacioIds = [
+      ...new Set(reservaciones.map((r) => r.espacioId)),
+    ].sort();
 
-  await this.prisma.$transaction(
-    async (tx) => {
-      for (const espacioId of espacioIds) {
-        const espacios = await tx.$queryRaw<{ id: string }[]>`
-          SELECT id
-          FROM espacios
-          WHERE id = ${espacioId}
-          FOR UPDATE
-        `;
+    await this.prisma.$transaction(
+      async (tx) => {
+        for (const espacioId of espacioIds) {
+          const espacios = await tx.$queryRaw<{ id: string }[]>`
+            SELECT id
+            FROM espacios
+            WHERE id = ${espacioId}
+            FOR UPDATE
+          `;
 
-        if (espacios.length === 0) {
-          throw new EspacioNoEncontradoError(
-            `El espacio con ID ${espacioId} no existe.`,
-          );
-        }
-      }
-
-      for (const reservacion of reservaciones) {
-        const inicioDia = parseFecha(reservacion.fecha);
-        const finDia = sumarDias(inicioDia, 1);
-
-        const conflicto = await tx.reservacion.findFirst({
-          where: {
-            espacioId: reservacion.espacioId,
-            fecha: {
-              gte: inicioDia,
-              lt: finDia,
-            },
-            estado: {
-              in: ['PENDIENTE', 'CONFIRMADA'],
-            },
-            horaInicio: {
-              lt: reservacion.horaFin,
-            },
-            horaFin: {
-              gt: reservacion.horaInicio,
-            },
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        if (conflicto) {
-          throw new EmpalmeReservacionError(
-            `El ${inicioDia.toISOString().slice(0, 10)} ya existe una ` +
-            `reservación que ocupa el horario solicitado ` +
-            `(${reservacion.horaInicio} - ${reservacion.horaFin}).`,
-          );
+          if (espacios.length === 0) {
+            throw new EspacioNoEncontradoError(
+              `El espacio con ID ${espacioId} no existe.`,
+            );
+          }
         }
 
-        // Usar tx mantiene la inserción dentro de la transacción.
-        await tx.reservacion.create({
-          data: this.datosCreacion(reservacion),
-        });
-      }
-    },
-    {
-      isolationLevel: 'ReadCommitted',
-      maxWait: 5_000,
-      timeout: 15_000,
-    },
-  );
-}
+        for (const reservacion of reservaciones) {
+          const usuarioExiste = await tx.usuario.findUnique({
+            where: { id: reservacion.usuarioId },
+            select: { id: true },
+          });
+          if (!usuarioExiste) {
+            throw new UsuarioNoEncontradoError(
+              `El usuario con ID ${reservacion.usuarioId} no existe.`,
+            );
+          }
+
+          const inicioDia = parseFecha(reservacion.fecha);
+          const finDia = sumarDias(inicioDia, 1);
+
+          const conflicto = await tx.reservacion.findFirst({
+            where: {
+              espacioId: reservacion.espacioId,
+              fecha: {
+                gte: inicioDia,
+                lt: finDia,
+              },
+              estado: {
+                in: ['PENDIENTE', 'CONFIRMADA'],
+              },
+              horaInicio: {
+                lt: reservacion.horaFin,
+              },
+              horaFin: {
+                gt: reservacion.horaInicio,
+              },
+            },
+            select: {
+              id: true,
+            },
+          });
+
+          if (conflicto) {
+            throw new EmpalmeReservacionError(
+              `El ${inicioDia.toISOString().slice(0, 10)} ya existe una ` +
+              `reservación que ocupa el horario solicitado ` +
+              `(${reservacion.horaInicio} - ${reservacion.horaFin}).`,
+            );
+          }
+
+          // Usar tx mantiene la inserción dentro de la transacción.
+          await tx.reservacion.create({
+            data: this.datosCreacion(reservacion),
+          });
+        }
+      },
+      {
+        isolationLevel: 'ReadCommitted',
+        maxWait: 5_000,
+        timeout: 15_000,
+      },
+    );
+  }
 
   async obtenerPorPagoId(pagoId: string): Promise<Reservacion | null> {
     const row = await this.prisma.reservacion.findUnique({ where: { pagoId } });
@@ -150,12 +170,78 @@ export class ReservacionPrismaRepository implements IReservacionRepository {
         espacioId: espacioId || undefined,
         fecha: {
           gte: parseFecha(fechaInicio),
-          lt: sumarDias(parseFecha(fechaFin), 1), // el día final se incluye completo
+          lt: sumarDias(parseFecha(fechaFin), 1), 
         },
       },
       orderBy: [{ fecha: 'asc' }, { horaInicio: 'asc' }],
     });
     return rows.map((r) => this.mapearAReservacion(r));
+  }
+
+  async obtenerDetalladas(
+    filtros: FiltrosReservacionesDetalladas = {},
+  ): Promise<ReservacionDetallada[]> {
+    const where: Record<string, unknown> = {};
+    if (filtros.espacioId) where.espacioId = filtros.espacioId;
+    if (filtros.estado) where.estado = this.mapDominioAPrismaEstado(filtros.estado);
+    if (filtros.desde && filtros.hasta) {
+      where.fecha = {
+        gte: parseFecha(filtros.desde),
+        lt: sumarDias(parseFecha(filtros.hasta), 1),
+      };
+    }
+
+    const rows = await this.prisma.reservacion.findMany({
+      where,
+      include: {
+        usuario: {
+          select: { id: true, nombre: true, correo: true, telefono: true },
+        },
+        espacio: {
+          select: { id: true, nombre: true, tipo: true },
+        },
+        pago: {
+          select: { id: true, estado: true, metodo: true, montoTotal: true },
+        },
+      },
+      orderBy: [{ fecha: 'asc' }, { horaInicio: 'asc' }],
+    });
+
+    return rows.map((r) => ({
+      id: r.id,
+      fecha: new Date(r.fecha),
+      horaInicio: r.horaInicio,
+      horaFin: r.horaFin,
+      estado: this.mapPrismaADominioEstado(r.estado),
+      espacioId: r.espacioId,
+      usuarioId: r.usuarioId,
+      pagoId: r.pagoId ?? '',
+      cantidadPersonas: r.cantidadPersonas,
+      subtotal: r.subtotal,
+      usuario: r.usuario
+        ? {
+            id: r.usuario.id,
+            nombre: r.usuario.nombre,
+            correo: r.usuario.correo,
+            telefono: r.usuario.telefono,
+          }
+        : null,
+      espacio: r.espacio
+        ? {
+            id: r.espacio.id,
+            nombre: r.espacio.nombre,
+            tipo: this.mapPrismaADominioTipo(r.espacio.tipo),
+          }
+        : null,
+      pago: r.pago
+        ? {
+            id: r.pago.id,
+            estado: r.pago.estado as EstadoPago,
+            metodo: (r.pago.metodo as MetodoPago | null) ?? undefined,
+            montoTotal: r.pago.montoTotal,
+          }
+        : null,
+    }));
   }
 
   async cambiarEstado(
@@ -199,6 +285,20 @@ export class ReservacionPrismaRepository implements IReservacionRepository {
         subtotal: reservacion.subtotal,
       },
     });
+  }
+
+  private mapPrismaADominioTipo(tipo: string): TipoEspacio {
+    switch (tipo) {
+      case 'CUBICULO':
+      case 'Cubiculo':
+        return TipoEspacio.CUBICULO;
+      case 'PC':
+        return TipoEspacio.PC;
+      case 'SALA':
+      case 'Sala':
+      default:
+        return TipoEspacio.SALA;
+    }
   }
 
   private mapDominioAPrismaEstado(estado: DominioEstadoReservacion): PrismaEstadoReservacion {

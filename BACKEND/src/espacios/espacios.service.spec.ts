@@ -4,7 +4,13 @@ import { DisponibilidadService } from './disponibilidad.service.js';
 import { ReservacionMemoryRepository } from '../reservaciones/infraestructura/reservacion.memory.repository.js';
 import { EspacioMemoryRepository } from './infraestructura/espacio.memory.repository.js';
 import { TipoEspacio } from '../dominio/entidades/espacio.entity.js';
-import { RangoHorasReservaInvalidoError, HoraInvalidaError, EspacioNoEncontradoError, SedeNoEncontradaError } from '../dominio/errores/dominio.errors.js';
+import {
+  RangoHorasReservaInvalidoError,
+  HoraInvalidaError,
+  EspacioNoEncontradoError,
+  BloqueoNoEncontradoError,
+  SedeNoEncontradaError,
+} from '../dominio/errores/dominio.errors.js';
 
 describe('EspaciosService - Reglas de Negocio', () => {
   let service: EspaciosService;
@@ -132,5 +138,39 @@ describe('EspaciosService - Reglas de Negocio', () => {
         motivo: 'Limpieza',
       }),
     ).rejects.toThrow(HoraInvalidaError);
+  });
+
+  it('debe listar sedes y desactivar un bloqueo existente lanzando BloqueoNoEncontradoError si no existe', async () => {
+    const espacio = await service.crearEspacio({
+      nombre: 'Sala Con Bloqueo',
+      descripcion: 'Desc',
+      tipo: TipoEspacio.SALA,
+      costoPorHora: 100,
+      duracionMinutos: 60,
+      sedeId: 'sede-1',
+      capacidadMaxima: 6,
+      amenidades: [],
+      minimoHorasReserva: 1,
+      maximoHorasReserva: 4,
+    });
+
+    expect(await service.listarSedes()).toHaveLength(1);
+
+    const bloqueo = await service.crearBloqueo(espacio.id, {
+      fechaInicio: '2026-11-10',
+      fechaFin: '2026-11-10',
+      horaInicio: '09:00',
+      horaFin: '11:00',
+      motivo: 'Mantenimiento',
+    });
+    expect(await service.obtenerBloqueos(espacio.id)).toHaveLength(1);
+
+    const desactivado = await service.desactivarBloqueo(espacio.id, bloqueo.id);
+    expect(desactivado.activo).toBe(false);
+    expect(await service.obtenerBloqueos(espacio.id, undefined, true)).toHaveLength(0);
+
+    await expect(service.desactivarBloqueo(espacio.id, 'no-existe')).rejects.toThrow(
+      BloqueoNoEncontradoError,
+    );
   });
 });

@@ -4,6 +4,7 @@ import {
   IsNotEmpty,
   IsDateString,
   IsInt,
+  IsOptional,
   Min,
   Matches,
 } from 'class-validator';
@@ -37,6 +38,10 @@ export class CrearReservacionDto implements CrearReservacionRequest {
   @IsNotEmpty({ message: 'El ID del espacio es obligatorio' })
   @IsString()
   espacioId!: string;
+
+  @IsOptional()
+  @IsString()
+  usuarioId?: string;
 
   @IsNotEmpty({ message: 'La cantidad de personas es obligatoria' })
   @Type(() => Number)

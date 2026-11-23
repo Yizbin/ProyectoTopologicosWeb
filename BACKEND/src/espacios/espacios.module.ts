@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { EspaciosController } from './espacios.controller.js';
+import { SedesController } from './sedes.controller.js';
 import { EspaciosService } from './espacios.service.js';
 import { DisponibilidadService } from './disponibilidad.service.js';
 import { EspacioPrismaRepository } from './infraestructura/espacio.prisma.repository.js';
@@ -9,7 +10,7 @@ import { ESPACIO_REPO_TOKEN } from '../tokens/tokens.js';
 
 @Module({
   imports: [PrismaModule, ReservacionesRepoModule],
-  controllers: [EspaciosController],
+  controllers: [EspaciosController, SedesController],
   providers: [
     EspaciosService,
     DisponibilidadService,

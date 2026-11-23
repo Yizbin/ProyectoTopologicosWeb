@@ -12,12 +12,15 @@ import {
   ForbiddenException,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { randomUUID } from 'node:crypto';
 import { ReservacionesService } from './reservaciones.service.js';
 import { CrearReservacionDto } from './dto/crear-reservacion.dto.js';
 import { CrearReservacionesMultiplesDto } from './dto/crear-reservaciones-multiples.dto.js';
 import { ListarReservacionesQueryDto } from './dto/listar-reservaciones-query.dto.js';
 import { parseFecha } from '../common/utils/fecha.util.js';
+import { paginarLista, type ResultadoPaginado } from '../common/utils/paginacion.util.js';
+import type { ReservacionDetallada } from '../dominio/contratos/reservacion.repository.interface.js';
 import {
   Reservacion,
   EstadoReservacion,
@@ -30,6 +33,8 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
 
 type UsuarioToken = { id: string; rol: RolUsuario };
 
+@ApiTags('Reservaciones')
+@ApiBearerAuth()
 @Controller('reservaciones')
 export class ReservacionesController {
   constructor(private readonly reservacionesService: ReservacionesService) { }
@@ -51,11 +56,13 @@ export class ReservacionesController {
 
   @Post()
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Crear una reservación (ADMIN puede especificar usuarioId)' })
   async crearReservacion(
     @Body() dto: CrearReservacionDto,
     @CurrentUser() user: UsuarioToken,
   ): Promise<Reservacion> {
     const id = randomUUID();
+    const usuarioIdDestino = this.esAdmin(user) && dto.usuarioId ? dto.usuarioId : user.id;
 
     const nuevaReservacion = new Reservacion(
       id,
@@ -64,7 +71,7 @@ export class ReservacionesController {
       dto.horaFin,
       EstadoReservacion.PENDIENTE,
       dto.espacioId,
-      user.id,
+      usuarioIdDestino,
       '',
       dto.cantidadPersonas,
       0,
@@ -77,6 +84,7 @@ export class ReservacionesController {
 
   @Post('multiples')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Crear reservaciones para múltiples fechas' })
   async crearReservacionesMultiples(
     @Body() dto: CrearReservacionesMultiplesDto,
     @CurrentUser() user: UsuarioToken,
@@ -96,7 +104,10 @@ export class ReservacionesController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.ADMIN)
-  async listar(@Query() query: ListarReservacionesQueryDto): Promise<Reservacion[]> {
+  @ApiOperation({ summary: 'Listar reservaciones enriquecidas con filtros y paginación opcional (Solo ADMIN)' })
+  async listar(
+    @Query() query: ListarReservacionesQueryDto,
+  ): Promise<ReservacionDetallada[] | ResultadoPaginado<ReservacionDetallada>> {
     if ((query.fechaInicio && !query.fechaFin) || (!query.fechaInicio && query.fechaFin)) {
       throw new BadRequestException('Para filtrar por rango indica fechaInicio y fechaFin.');
     }
@@ -106,17 +117,25 @@ export class ReservacionesController {
       throw new BadRequestException('fechaFin no puede ser anterior a fechaInicio.');
     }
 
-    return this.reservacionesService.listarReservaciones({
+    const lista = await this.reservacionesService.listarReservacionesAdmin({
       fecha: query.fecha ? parseFecha(query.fecha) : undefined,
       desde,
       hasta,
       espacioId: query.espacioId,
       estado: query.estado,
+      busqueda: query.busqueda ?? query.q,
     });
+
+    if (query.page !== undefined || query.limit !== undefined) {
+      return paginarLista(lista, query.page, query.limit);
+    }
+
+    return lista;
   }
 
   @Get('cliente/:usuarioId')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Consultar historial de reservaciones de un cliente' })
   async obtenerHistorialCliente(
     @Param('usuarioId') usuarioId: string,
     @CurrentUser() user: UsuarioToken,
@@ -129,6 +148,7 @@ export class ReservacionesController {
 
   @Get(':id')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Obtener detalle de una reservación' })
   async obtenerPorId(
     @Param('id') id: string,
     @CurrentUser() user: UsuarioToken,
@@ -139,6 +159,7 @@ export class ReservacionesController {
   @Patch(':id/confirmar')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.ADMIN)
+  @ApiOperation({ summary: 'Confirmar reservación pendiente (Solo ADMIN)' })
   async confirmar(@Param('id') id: string): Promise<CancelarReservacionResponse> {
     await this.reservacionesService.confirmarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
@@ -148,6 +169,7 @@ export class ReservacionesController {
   @Patch(':id/completar')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RolUsuario.ADMIN)
+  @ApiOperation({ summary: 'Completar reservación confirmada (Solo ADMIN)' })
   async completar(@Param('id') id: string): Promise<CancelarReservacionResponse> {
     await this.reservacionesService.completarReservacion(id);
     const reservacion = await this.reservacionesService.obtenerPorId(id);
@@ -156,6 +178,7 @@ export class ReservacionesController {
 
   @Patch(':id/cancelar')
   @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Cancelar una reservación (cliente propietario o ADMIN)' })
   async cancelar(
     @Param('id') id: string,
     @CurrentUser() user: UsuarioToken,

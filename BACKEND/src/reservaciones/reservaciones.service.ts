@@ -1,5 +1,8 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { IReservacionRepository } from '../dominio/contratos/reservacion.repository.interface.js';
+import type {
+  IReservacionRepository,
+  ReservacionDetallada,
+} from '../dominio/contratos/reservacion.repository.interface.js';
 import type { IEspacioRepository } from '../dominio/contratos/espacio.repository.interface.js';
 import { EstadoReservacion, Reservacion } from '../dominio/entidades/reservacion.entity.js';
 import {
@@ -263,6 +266,53 @@ export class ReservacionesService {
     return base
       .filter((r) => (filtros.espacioId ? r.espacioId === filtros.espacioId : true))
       .filter((r) => (filtros.estado ? r.estado === filtros.estado : true))
+      .sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.horaInicio.localeCompare(b.horaInicio));
+  }
+
+  async listarReservacionesAdmin(
+    filtros: FiltrosListadoReservaciones & { busqueda?: string } = {},
+  ): Promise<ReservacionDetallada[]> {
+    const desde = filtros.fecha ?? filtros.desde;
+    const hasta = filtros.fecha ?? filtros.hasta;
+
+    if ((desde && !hasta) || (!desde && hasta)) {
+      throw new RangoFechasInvalidoError('Para filtrar por rango indica fechaInicio y fechaFin.');
+    }
+    if (desde && hasta && parseFecha(hasta) < parseFecha(desde)) {
+      throw new RangoFechasInvalidoError('fechaFin no puede ser anterior a fechaInicio.');
+    }
+
+    const detalladas = await this.reservacionRepo.obtenerDetalladas({
+      desde: desde ? parseFecha(desde) : undefined,
+      hasta: hasta ? parseFecha(hasta) : undefined,
+      espacioId: filtros.espacioId,
+      estado: filtros.estado,
+    });
+
+    const enriquecidas = await Promise.all(
+      detalladas.map(async (item) => {
+        if (item.espacio) return item;
+        const espacio = await this.espacioRepo.obtenerEspacioPorId(item.espacioId);
+        return espacio
+          ? {
+              ...item,
+              espacio: { id: espacio.id, nombre: espacio.nombre, tipo: espacio.tipo },
+            }
+          : item;
+      }),
+    );
+
+    const termino = filtros.busqueda?.trim().toLowerCase();
+    return enriquecidas
+      .filter((r) => {
+        if (!termino) return true;
+        return (
+          r.id.toLowerCase().includes(termino) ||
+          (r.usuario?.nombre.toLowerCase().includes(termino) ?? false) ||
+          (r.usuario?.correo.toLowerCase().includes(termino) ?? false) ||
+          (r.espacio?.nombre.toLowerCase().includes(termino) ?? false)
+        );
+      })
       .sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.horaInicio.localeCompare(b.horaInicio));
   }
 

@@ -137,11 +137,14 @@ describe('Espacios - búsqueda, disponibilidad, edición y horarios', () => {
       await service.crearEspacio(dtoEspacio({ id: 'inactivo', nombre: 'Inactivo', activo: false, horarios: [{ diaSemana: 1, horaApertura: '09:00', horaCierre: '18:00' }] }));
     });
 
-    it('filtra por tipo, capacidad mínima y activo', async () => {
+    it('filtra por tipo, capacidad mínima, búsqueda y estadoActivo', async () => {
       expect((await service.buscarEspacios({})).map((e) => e.id).sort()).toEqual(['cub', 'sala']);
       expect((await service.buscarEspacios({ tipo: TipoEspacio.CUBICULO })).map((e) => e.id)).toEqual(['cub']);
       expect((await service.buscarEspacios({ capacidad: 5 })).map((e) => e.id)).toEqual(['sala']);
       expect((await service.buscarEspacios({ activoSolo: false })).map((e) => e.id)).toHaveLength(3);
+      expect((await service.buscarEspacios({ estadoActivo: 'todos' })).map((e) => e.id)).toHaveLength(3);
+      expect((await service.buscarEspacios({ estadoActivo: 'inactivos' })).map((e) => e.id)).toEqual(['inactivo']);
+      expect((await service.buscarEspacios({ estadoActivo: 'todos', busqueda: 'grande' })).map((e) => e.id)).toEqual(['sala']);
     });
 
     it('con fecha solo regresa espacios con bloques libres ese día e incluye esos bloques', async () => {

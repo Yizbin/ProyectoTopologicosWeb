@@ -10,6 +10,8 @@ import {
   CantidadPersonasInvalidaError,
   FechasReservaRequeridasError,
   RangoFechasInvalidoError,
+  BloqueoNoEncontradoError,
+  UsuarioNoEncontradoError,
 } from '../../dominio/errores/dominio.errors.js';
 
 describe('DominioExceptionFilter', () => {
@@ -104,6 +106,8 @@ describe('DominioExceptionFilter', () => {
     [new CantidadPersonasInvalidaError(), 'CantidadPersonasInvalidaError'],
     [new FechasReservaRequeridasError(), 'FechasReservaRequeridasError'],
     [new RangoFechasInvalidoError(), 'RangoFechasInvalidoError'],
+    [new BloqueoNoEncontradoError(), 'BloqueoNoEncontradoError'],
+    [new UsuarioNoEncontradoError(), 'UsuarioNoEncontradoError'],
   ])('debe atrapar %o y retornar HTTP 409 con su tipoError semántico', (error, expectedTipo) => {
     const { hostMock, statusMock, jsonMock } = createMockHost();
 

@@ -14,5 +14,7 @@ export interface IEspacioRepository {
     obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]>;
     guardarBloqueo(bloqueo: Bloqueo): Promise<void>;
     obtenerSedePorId(id: string): Promise<Sede | null>;
+    listarSedes(): Promise<Sede[]>;
     guardarSede(sede: Sede): Promise<void>;
+    obtenerBloqueoPorId(id: string): Promise<Bloqueo | null>;
 }

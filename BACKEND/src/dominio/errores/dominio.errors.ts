@@ -135,3 +135,15 @@ export class RangoFechasInvalidoError extends DominioError {
         super(mensaje);
     }
 }
+
+export class BloqueoNoEncontradoError extends DominioError {
+    constructor(mensaje: string = "El bloqueo solicitado no fue encontrado.") {
+        super(mensaje);
+    }
+}
+
+export class UsuarioNoEncontradoError extends DominioError {
+    constructor(mensaje: string = "El usuario especificado no existe.") {
+        super(mensaje);
+    }
+}

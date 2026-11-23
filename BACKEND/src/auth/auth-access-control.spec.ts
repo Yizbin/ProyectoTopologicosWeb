@@ -5,11 +5,16 @@ import request from 'supertest';
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { EspaciosController } from '../espacios/espacios.controller.js';
+import { SedesController } from '../espacios/sedes.controller.js';
 import { EspaciosService } from '../espacios/espacios.service.js';
 import { ReservacionesController } from '../reservaciones/reservaciones.controller.js';
 import { ReservacionesService } from '../reservaciones/reservaciones.service.js';
 import { PagosController } from '../pagos/pagos.controller.js';
 import { PagosService } from '../pagos/pagos.service.js';
+import { UsuariosController } from '../usuarios/usuarios.controller.js';
+import { UsuariosService } from '../usuarios/usuarios.service.js';
+import { DashboardController } from '../dashboard/dashboard.controller.js';
+import { DashboardService } from '../dashboard/dashboard.service.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { RolesGuard } from './guards/roles.guard.js';
 import { RolUsuario } from '../dominio/entidades/usuario.entity.js';
@@ -23,6 +28,8 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
   const mockEspaciosService = {
     crearEspacio: () => Promise.resolve({ id: 'espacio-1', nombre: 'Sala VIP' }),
     crearBloqueo: () => Promise.resolve({ id: 'bloqueo-1', motivo: 'Mantenimiento' }),
+    desactivarBloqueo: () => Promise.resolve({ id: 'bloqueo-1', activo: false }),
+    listarSedes: () => Promise.resolve([{ id: 'sede-1', nombre: 'Sede Principal' }]),
     listarEspacios: () => Promise.resolve([{ id: 'espacio-1', nombre: 'Sala VIP' }]),
     obtenerEspacioPorId: () => Promise.resolve({ id: 'espacio-1', nombre: 'Sala VIP' }),
     obtenerHorarios: () => Promise.resolve([]),
@@ -42,12 +49,31 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
     cancelarReservacion: () => Promise.resolve(),
     crearReservacionesMultiples: () => Promise.resolve([{ id: 'res-1', subtotal: 200 }, { id: 'res-2', subtotal: 200 }]),
     listarReservaciones: () => Promise.resolve([]),
+    listarReservacionesAdmin: () => Promise.resolve([{ id: 'res-1' }]),
   };
 
   const mockPagosService = {
     registrarPago: () => Promise.resolve([{ id: 'pago-1', montoTotal: 200 }]),
+    listarPagos: () => Promise.resolve([{ id: 'pago-1', montoTotal: 200 }]),
     obtenerPorId: () => Promise.resolve({ id: 'pago-1' }),
     completarPago: () => Promise.resolve({ id: 'pago-1' }),
+  };
+
+  const mockUsuariosService = {
+    crearUsuario: () => Promise.resolve({ id: 'u1', nombre: 'Nuevo', correo: 'n@t.com', telefono: '555', contrasena: 'hash', rol: RolUsuario.CLIENTE }),
+    listarUsuarios: () => Promise.resolve([{ id: 'u1', nombre: 'Ana', correo: 'ana@test.com', telefono: '555', rol: RolUsuario.CLIENTE }]),
+    buscarPorId: (id: string) => Promise.resolve({ id, nombre: 'Ana', correo: 'ana@test.com', telefono: '555', contrasena: 'hash', rol: RolUsuario.CLIENTE }),
+  };
+
+  const mockDashboardService = {
+    obtenerResumen: () => Promise.resolve({
+      espacios: { total: 1, activos: 1, inactivos: 0 },
+      reservaciones: { total: 0, pendientes: 0, confirmadas: 0, completadas: 0, canceladas: 0, hoy: 0, proximos7Dias: 0 },
+      ingresos: { acumulados: 0, pendientesPorCobrar: 0, pagosCompletados: 0, pagosPendientes: 0 },
+      usuarios: { total: 1, clientes: 1, admins: 0 },
+      topEspacios: [],
+      ultimasReservaciones: [],
+    }),
   };
 
   beforeEach(async () => {
@@ -61,13 +87,22 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
           signOptions: { expiresIn: '1h' },
         }),
       ],
-      controllers: [EspaciosController, ReservacionesController, PagosController],
+      controllers: [
+        EspaciosController,
+        SedesController,
+        ReservacionesController,
+        PagosController,
+        UsuariosController,
+        DashboardController,
+      ],
       providers: [
         JwtStrategy,
         RolesGuard,
         { provide: EspaciosService, useValue: mockEspaciosService },
         { provide: ReservacionesService, useValue: mockReservacionesService },
         { provide: PagosService, useValue: mockPagosService },
+        { provide: UsuariosService, useValue: mockUsuariosService },
+        { provide: DashboardService, useValue: mockDashboardService },
       ],
     }).compile();
 
@@ -336,6 +371,58 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
 
       const efectivo = await request(app.getHttpServer()).post('/pagos').set('Authorization', `Bearer ${token}`).send({ reservacionIds: ['res-1'], metodo: 'EFECTIVO' });
       expect(efectivo.status).toBe(201);
+    });
+
+    it('GET /sedes es público y devuelve la lista de sedes (200)', async () => {
+      const res = await request(app.getHttpServer()).get('/sedes');
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual([{ id: 'sede-1', nombre: 'Sede Principal' }]);
+    });
+
+    it.each([
+      ['get', '/dashboard/resumen', undefined],
+      ['patch', '/espacios/espacio-1/bloqueos/bloq-1/desactivar', undefined],
+      ['get', '/pagos', undefined],
+      ['get', '/usuarios', undefined],
+    ] as const)('Backoffice %s %s: 401 sin token, 403 con CLIENTE, 200 con ADMIN', async (metodo, ruta, cuerpo) => {
+      const llamar = (token?: string) => {
+        let r = (request(app.getHttpServer()) as any)[metodo](ruta);
+        if (token) r = r.set('Authorization', `Bearer ${token}`);
+        return cuerpo ? r.send(cuerpo) : r;
+      };
+      expect((await llamar()).status).toBe(401);
+      expect((await llamar(generarToken(RolUsuario.CLIENTE))).status).toBe(403);
+      expect((await llamar(generarToken(RolUsuario.ADMIN))).status).toBe(200);
+    });
+
+    it('GET /usuarios/:id permite ADMIN para cualquiera y CLIENTE solo sobre sí mismo', async () => {
+      const tokenCliente = generarToken(RolUsuario.CLIENTE);
+      const tokenAdmin = generarToken(RolUsuario.ADMIN);
+
+      expect((await request(app.getHttpServer()).get('/usuarios/otro-id').set('Authorization', `Bearer ${tokenCliente}`)).status).toBe(403);
+
+      const propio = await request(app.getHttpServer()).get('/usuarios/usuario-test-id').set('Authorization', `Bearer ${tokenCliente}`);
+      expect(propio.status).toBe(200);
+      expect(propio.body.contrasena).toBeUndefined();
+
+      const adminRes = await request(app.getHttpServer()).get('/usuarios/otro-id').set('Authorization', `Bearer ${tokenAdmin}`);
+      expect(adminRes.status).toBe(200);
+      expect(adminRes.body.contrasena).toBeUndefined();
+    });
+
+    it('GET /reservaciones?page=1&limit=10 devuelve respuesta paginada para ADMIN', async () => {
+      const tokenAdmin = generarToken(RolUsuario.ADMIN);
+      const res = await request(app.getHttpServer())
+        .get('/reservaciones?page=1&limit=10')
+        .set('Authorization', `Bearer ${tokenAdmin}`);
+      expect(res.status).toBe(200);
+      expect(res.body).toEqual({
+        items: [{ id: 'res-1' }],
+        total: 1,
+        page: 1,
+        limit: 10,
+        totalPages: 1,
+      });
     });
   });
 });

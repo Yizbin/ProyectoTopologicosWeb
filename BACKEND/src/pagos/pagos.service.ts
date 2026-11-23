@@ -1,6 +1,10 @@
 import { Injectable, Inject, ForbiddenException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import type { IPagoRepository } from '../dominio/contratos/pago.repository.interface.js';
+import type {
+  FiltrosListadoPagos,
+  IPagoRepository,
+  PagoDetallado,
+} from '../dominio/contratos/pago.repository.interface.js';
 import type { IReservacionRepository } from '../dominio/contratos/reservacion.repository.interface.js';
 import { EstadoPago, MetodoPago, Pago } from '../dominio/entidades/pago.entity.js';
 import { EstadoReservacion, Reservacion } from '../dominio/entidades/reservacion.entity.js';
@@ -64,8 +68,31 @@ export class PagosService {
     return pago;
   }
 
-  /** Admin: confirma un pago en efectivo que estaba PENDIENTE. */
+  // Admin: confirma un pago en efectivo que estaba PENDIENTE
   async completarPago(id: string): Promise<Pago> {
     return this.pagoRepo.completarSiReservacionVigente(id);
+  }
+
+  // Admin: lista pagos registrados con filtros opcionales
+  async listarPagos(
+    filtros: FiltrosListadoPagos & { busqueda?: string } = {},
+  ): Promise<PagoDetallado[]> {
+    const lista = await this.pagoRepo.listarTodos({
+      estado: filtros.estado,
+      metodo: filtros.metodo,
+    });
+    const termino = filtros.busqueda?.trim().toLowerCase();
+    if (!termino) return lista;
+
+    return lista.filter((p) => {
+      return (
+        p.id.toLowerCase().includes(termino) ||
+        (p.referencia?.toLowerCase().includes(termino) ?? false) ||
+        (p.reservacion?.id.toLowerCase().includes(termino) ?? false) ||
+        (p.reservacion?.usuarioNombre?.toLowerCase().includes(termino) ?? false) ||
+        (p.reservacion?.usuarioCorreo?.toLowerCase().includes(termino) ?? false) ||
+        (p.reservacion?.espacioNombre?.toLowerCase().includes(termino) ?? false)
+      );
+    });
   }
 }

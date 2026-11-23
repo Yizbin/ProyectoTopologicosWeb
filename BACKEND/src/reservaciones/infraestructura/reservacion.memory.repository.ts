@@ -1,5 +1,9 @@
 import { Injectable } from '@nestjs/common/decorators/core/index.js';
-import { IReservacionRepository } from '../../dominio/contratos/reservacion.repository.interface.js';
+import type {
+    FiltrosReservacionesDetalladas,
+    IReservacionRepository,
+    ReservacionDetallada,
+} from '../../dominio/contratos/reservacion.repository.interface.js';
 import { formatoFecha, inicioYaPaso } from '../../common/utils/fecha.util.js';
 import { Reservacion, EstadoReservacion, } from '../../dominio/entidades/reservacion.entity.js';
 import { EmpalmeReservacionError, } from '../../dominio/errores/dominio.errors.js';
@@ -86,5 +90,37 @@ export class ReservacionMemoryRepository implements IReservacionRepository {
             const coincideEspacio = espacioId ? r.espacioId === espacioId : true;
             return coincideEspacio && f >= desde && f <= hasta;
         });
+    }
+
+    async obtenerDetalladas(
+        filtros: FiltrosReservacionesDetalladas = {},
+    ): Promise<ReservacionDetallada[]> {
+        const desde = filtros.desde ? formatoFecha(filtros.desde) : undefined;
+        const hasta = filtros.hasta ? formatoFecha(filtros.hasta) : undefined;
+
+        return this.reservaciones
+            .filter(r => (filtros.espacioId ? r.espacioId === filtros.espacioId : true))
+            .filter(r => (filtros.estado ? r.estado === filtros.estado : true))
+            .filter(r => {
+                if (!desde || !hasta) return true;
+                const f = formatoFecha(r.fecha);
+                return f >= desde && f <= hasta;
+            })
+            .sort((a, b) => a.fecha.getTime() - b.fecha.getTime() || a.horaInicio.localeCompare(b.horaInicio))
+            .map(r => ({
+                id: r.id,
+                fecha: r.fecha,
+                horaInicio: r.horaInicio,
+                horaFin: r.horaFin,
+                estado: r.estado,
+                espacioId: r.espacioId,
+                usuarioId: r.usuarioId,
+                pagoId: r.pagoId,
+                cantidadPersonas: r.cantidadPersonas,
+                subtotal: r.subtotal,
+                usuario: null,
+                espacio: null,
+                pago: null,
+            }));
     }
 }

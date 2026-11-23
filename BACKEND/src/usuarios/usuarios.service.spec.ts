@@ -50,4 +50,21 @@ describe('UsuariosService', () => {
       }),
     );
   });
+
+  it('lista usuarios sin contraseña filtrando por rol y texto de búsqueda', async () => {
+    mockPrisma.usuario.findMany.mockResolvedValue([
+      { id: 'u1', nombre: 'Ana Cliente', correo: 'ana@correo.com', telefono: '555-1111', rol: RolUsuario.CLIENTE },
+      { id: 'u2', nombre: 'Luis Admin', correo: 'luis@correo.com', telefono: '555-2222', rol: RolUsuario.ADMIN },
+    ]);
+
+    const filtrados = await usuariosService.listarUsuarios({ busqueda: 'ana' });
+    expect(filtrados).toEqual([
+      { id: 'u1', nombre: 'Ana Cliente', correo: 'ana@correo.com', telefono: '555-1111', rol: RolUsuario.CLIENTE },
+    ]);
+    expect(mockPrisma.usuario.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        select: { id: true, nombre: true, correo: true, telefono: true, rol: true },
+      }),
+    );
+  });
 });

@@ -34,6 +34,10 @@ export class EspacioMemoryRepository implements IEspacioRepository {
         return this.sedes.find(s => s.id === id) || null;
     }
 
+    async listarSedes(): Promise<Sede[]> {
+        return [...this.sedes].sort((a, b) => a.nombre.localeCompare(b.nombre));
+    }
+
     async guardarSede(sede: Sede): Promise<void> {
         const index = this.sedes.findIndex(s => s.id === sede.id);
         if (index !== -1) {
@@ -68,6 +72,10 @@ export class EspacioMemoryRepository implements IEspacioRepository {
 
     async obtenerBloqueosPorEspacio(espacioId: string): Promise<Bloqueo[]> {
         return this.bloqueos.filter(b => b.espacioId === espacioId);
+    }
+
+    async obtenerBloqueoPorId(id: string): Promise<Bloqueo | null> {
+        return this.bloqueos.find(b => b.id === id) || null;
     }
 
     async guardarBloqueo(bloqueo: Bloqueo): Promise<void> {

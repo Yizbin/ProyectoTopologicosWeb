@@ -9,6 +9,7 @@ import {
   RangoHorasReservaInvalidoError,
   HoraInvalidaError,
   EspacioNoEncontradoError,
+  BloqueoNoEncontradoError,
   HorarioAtencionInvalidoError,
   SedeNoEncontradaError,
 } from '../dominio/errores/dominio.errors.js';
@@ -26,6 +27,8 @@ export interface FiltrosEspacios {
   tipo?: TipoEspacio;
   sedeId?: string;
   activoSolo?: boolean;
+  busqueda?: string;
+  estadoActivo?: 'activos' | 'inactivos' | 'todos';
 }
 
 export type EspacioBuscado = Espacio & { horariosLibres?: BloqueHorario[] };
@@ -132,12 +135,34 @@ export class EspaciosService {
     return this.espacioRepo.listarEspacios(activoSolo);
   }
 
+  async listarSedes(): Promise<Sede[]> {
+    return this.espacioRepo.listarSedes();
+  }
+
   async buscarEspacios(filtros: FiltrosEspacios = {}): Promise<EspacioBuscado[]> {
-    const todos = await this.espacioRepo.listarEspacios(filtros.activoSolo ?? true);
+    const activoSolo =
+      filtros.estadoActivo === 'todos' || filtros.estadoActivo === 'inactivos'
+        ? false
+        : filtros.estadoActivo === 'activos'
+          ? true
+          : (filtros.activoSolo ?? true);
+
+    const todos = await this.espacioRepo.listarEspacios(activoSolo);
+    const termino = filtros.busqueda?.trim().toLowerCase();
+
     const candidatos = todos
+      .filter((e) => (filtros.estadoActivo === 'inactivos' ? !e.activo : true))
       .filter((e) => (filtros.tipo ? e.tipo === filtros.tipo : true))
       .filter((e) => (filtros.sedeId ? e.sedeId === filtros.sedeId : true))
-      .filter((e) => (filtros.capacidad ? e.capacidadMaxima >= filtros.capacidad : true));
+      .filter((e) => (filtros.capacidad ? e.capacidadMaxima >= filtros.capacidad : true))
+      .filter((e) => {
+        if (!termino) return true;
+        return (
+          e.nombre.toLowerCase().includes(termino) ||
+          e.descripcion.toLowerCase().includes(termino) ||
+          e.amenidades.some((a) => a.toLowerCase().includes(termino))
+        );
+      });
 
     if (!filtros.fecha) {
       return candidatos;
@@ -178,9 +203,24 @@ export class EspaciosService {
     return this.espacioRepo.obtenerHorariosPorEspacio(espacioId);
   }
 
-  async obtenerBloqueos(espacioId: string, fecha: Date): Promise<Bloqueo[]> {
+  async obtenerBloqueos(espacioId: string, fecha?: Date, soloActivos?: boolean): Promise<Bloqueo[]> {
     await this.obtenerEspacioPorId(espacioId);
-    return this.espacioRepo.obtenerBloqueosPorEspacioYFecha(espacioId, fecha);
+    if (fecha) {
+      return this.espacioRepo.obtenerBloqueosPorEspacioYFecha(espacioId, fecha);
+    }
+    const bloqueos = await this.espacioRepo.obtenerBloqueosPorEspacio(espacioId);
+    return soloActivos ? bloqueos.filter((b) => b.activo) : bloqueos;
+  }
+
+  async desactivarBloqueo(espacioId: string, bloqueoId: string): Promise<Bloqueo> {
+    await this.obtenerEspacioPorId(espacioId);
+    const bloqueo = await this.espacioRepo.obtenerBloqueoPorId(bloqueoId);
+    if (!bloqueo || bloqueo.espacioId !== espacioId) {
+      throw new BloqueoNoEncontradoError(`El bloqueo ${bloqueoId} no existe para el espacio ${espacioId}.`);
+    }
+    bloqueo.activo = false;
+    await this.espacioRepo.guardarBloqueo(bloqueo);
+    return bloqueo;
   }
 
   async crearBloqueo(espacioId: string, dto: CrearBloqueoDto): Promise<Bloqueo> {
