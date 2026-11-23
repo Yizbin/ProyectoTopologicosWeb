@@ -1,0 +1,166 @@
+<div class="flex min-h-screen items-center justify-center bg-[#f6f5f0] px-4 py-12 text-[#23312b]">
+  <div class="w-full max-w-md">
+    <div class="mb-6 flex items-center justify-center gap-3">
+      <span class="flex h-11 w-11 items-center justify-center rounded-xl border border-[#526e5c]/40 bg-[#23312b] text-white shadow-xs">
+        <svg
+          aria-hidden="true"
+          class="h-5 w-5 text-[#e4b390]"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      </span>
+      <div>
+        <span class="block text-lg font-bold tracking-tight text-[#23312b]">
+          Casa Norte
+        </span>
+        <span class="block text-[11px] font-semibold uppercase tracking-[0.18em] text-[#526e5c]">
+          Panel Administrativo
+        </span>
+      </div>
+    </div>
+
+    <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8">
+      <div class="border-b border-stone-100 pb-4">
+        <span class="inline-flex items-center gap-1.5 rounded-full bg-[#e4e9e0] px-3 py-1 text-[11px] font-semibold uppercase tracking-wider text-[#23312b]">
+          Acceso exclusivo ADMIN
+        </span>
+        <h1 class="mt-3 text-2xl font-semibold tracking-tight text-stone-900">
+          Iniciar sesión
+        </h1>
+        <p class="mt-1 text-sm text-stone-600">
+          Ingresa tus credenciales de administración para operar el backoffice.
+        </p>
+      </div>
+
+      @if (authNotice()) {
+        <div
+          role="status"
+          class="mt-5 flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3.5 text-sm text-amber-900"
+        >
+          <div class="flex items-start gap-2.5">
+            <svg
+              aria-hidden="true"
+              class="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span>{{ authNotice() }}</span>
+          </div>
+          <button
+            type="button"
+            aria-label="Cerrar aviso"
+            (click)="dismissNotice()"
+            class="text-amber-700 transition hover:text-amber-950"
+          >
+            ×
+          </button>
+        </div>
+      }
+
+      @if (errorMessage()) {
+        <div
+          role="alert"
+          class="mt-5 rounded-xl border border-red-200 bg-red-50 p-3.5 text-sm text-red-900"
+        >
+          <div class="flex flex-wrap items-center gap-2">
+            <strong class="font-semibold">No se pudo acceder</strong>
+            @if (errorTipo()) {
+              <span class="rounded-full bg-red-100 px-2 py-0.5 font-mono text-[11px] font-medium text-red-800">
+                {{ errorTipo() }}
+              </span>
+            }
+          </div>
+          <p class="mt-1 text-xs leading-relaxed text-red-800">
+            {{ errorMessage() }}
+          </p>
+        </div>
+      }
+
+      <form
+        [formGroup]="loginForm"
+        (ngSubmit)="onSubmit()"
+        novalidate
+        class="mt-6 space-y-4"
+      >
+        <div>
+          <label
+            for="admin-login-email"
+            class="block text-xs font-semibold uppercase tracking-wider text-stone-700"
+          >
+            Correo electrónico
+          </label>
+          <input
+            id="admin-login-email"
+            type="email"
+            autocomplete="email"
+            formControlName="correo"
+            placeholder="admin@seeder.com"
+            [attr.aria-invalid]="hasFieldError('correo')"
+            class="mt-1.5 w-full rounded-xl border bg-stone-50/70 px-3.5 py-2.5 text-sm text-stone-900 outline-none transition focus:bg-white focus:ring-2"
+            [class.border-red-400]="hasFieldError('correo')"
+            [class.focus:ring-red-200]="hasFieldError('correo')"
+            [class.border-stone-300]="!hasFieldError('correo')"
+            [class.focus:border-[#526e5c]]="!hasFieldError('correo')"
+            [class.focus:ring-emerald-100]="!hasFieldError('correo')"
+          />
+          @if (getFieldErrorMessage('correo'); as msg) {
+            <p class="mt-1 text-xs font-medium text-red-600">{{ msg }}</p>
+          }
+        </div>
+
+        <div>
+          <label
+            for="admin-login-password"
+            class="block text-xs font-semibold uppercase tracking-wider text-stone-700"
+          >
+            Contraseña
+          </label>
+          <input
+            id="admin-login-password"
+            type="password"
+            autocomplete="current-password"
+            formControlName="contrasena"
+            placeholder="••••••••"
+            [attr.aria-invalid]="hasFieldError('contrasena')"
+            class="mt-1.5 w-full rounded-xl border bg-stone-50/70 px-3.5 py-2.5 text-sm text-stone-900 outline-none transition focus:bg-white focus:ring-2"
+            [class.border-red-400]="hasFieldError('contrasena')"
+            [class.focus:ring-red-200]="hasFieldError('contrasena')"
+            [class.border-stone-300]="!hasFieldError('contrasena')"
+            [class.focus:border-[#526e5c]]="!hasFieldError('contrasena')"
+            [class.focus:ring-emerald-100]="!hasFieldError('contrasena')"
+          />
+          @if (getFieldErrorMessage('contrasena'); as msg) {
+            <p class="mt-1 text-xs font-medium text-red-600">{{ msg }}</p>
+          }
+        </div>
+
+        <button
+          type="submit"
+          [disabled]="isSubmitting()"
+          class="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-[#23312b] px-5 py-3 text-sm font-semibold text-white shadow-xs transition hover:bg-[#354b42] disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          @if (isSubmitting()) {
+            <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+            Validando acceso...
+          } @else {
+            Ingresar al panel
+          }
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
