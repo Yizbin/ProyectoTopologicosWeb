@@ -51,6 +51,15 @@ export class PagosService {
     }
 
     await this.pagoRepo.guardarConReservaciones(items);
+    if (estado === EstadoPago.COMPLETADO) {
+      for (const { reservacionId } of items) {
+        const reservacion = await this.reservacionRepo.obtenerPorId(reservacionId);
+        if (reservacion && reservacion.estado === EstadoReservacion.PENDIENTE) {
+          reservacion.estado = EstadoReservacion.CONFIRMADA;
+          await this.reservacionRepo.actualizar(reservacion);
+        }
+      }
+    }
     return items.map((i) => i.pago);
   }
 
@@ -68,12 +77,16 @@ export class PagosService {
     return pago;
   }
 
-  // Admin: confirma un pago en efectivo que estaba PENDIENTE
   async completarPago(id: string): Promise<Pago> {
-    return this.pagoRepo.completarSiReservacionVigente(id);
+    const pago = await this.pagoRepo.completarSiReservacionVigente(id);
+    const reservacion = await this.reservacionRepo.obtenerPorPagoId(id);
+    if (reservacion && reservacion.estado === EstadoReservacion.PENDIENTE) {
+      reservacion.estado = EstadoReservacion.CONFIRMADA;
+      await this.reservacionRepo.actualizar(reservacion);
+    }
+    return pago;
   }
 
-  // Admin: lista pagos registrados con filtros opcionales
   async listarPagos(
     filtros: FiltrosListadoPagos & { busqueda?: string } = {},
   ): Promise<PagoDetallado[]> {

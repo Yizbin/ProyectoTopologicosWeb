@@ -1,0 +1,256 @@
+<div class="mx-auto max-w-5xl space-y-6">
+  <div>
+    <a
+      routerLink="/reservaciones"
+      class="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900"
+    >
+      <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+      </svg>
+      Volver a reservaciones
+    </a>
+  </div>
+
+  <app-async-state
+    [isLoading]="isLoading()"
+    [error]="loadError()"
+    loadingMessage="Cargando detalle de la reservación…"
+    (retry)="cargarDetalle()"
+  >
+    @if (reservacion(); as res) {
+      <div class="space-y-6">
+        <div class="flex flex-col gap-4 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div class="flex flex-wrap items-center gap-2.5">
+              <h1 class="text-2xl font-bold tracking-tight text-stone-900">
+                Reservación
+              </h1>
+              <app-status-badge [value]="res.estado" />
+            </div>
+            <p class="mt-1 font-mono text-xs text-stone-500">ID: {{ res.id }}</p>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            @if (res.estado === 'pendiente') {
+              <button
+                type="button"
+                (click)="solicitarAccion('confirmar')"
+                class="rounded-lg bg-[#23312b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#354b42]"
+              >
+                Confirmar reservación
+              </button>
+            }
+            @if (res.estado === 'confirmada') {
+              <button
+                type="button"
+                (click)="solicitarAccion('completar')"
+                class="rounded-lg bg-[#23312b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#354b42]"
+              >
+                Marcar como completada
+              </button>
+            }
+            @if (res.estado === 'pendiente' || res.estado === 'confirmada') {
+              <button
+                type="button"
+                (click)="solicitarAccion('cancelar')"
+                class="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100"
+              >
+                Cancelar reservación
+              </button>
+            }
+          </div>
+        </div>
+
+        <app-domain-error-alert [error]="actionError()" />
+
+        @if (actionSuccess(); as msg) {
+          <div class="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-900">
+            {{ msg }}
+          </div>
+        }
+
+        <div class="grid gap-6 lg:grid-cols-3">
+          <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm lg:col-span-2 space-y-5">
+            <h2 class="text-base font-bold text-stone-900">
+              Datos de la reserva
+            </h2>
+
+            <dl class="grid gap-4 sm:grid-cols-2 text-sm">
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  Fecha
+                </dt>
+                <dd class="mt-1 font-semibold text-stone-900">
+                  {{ formatDate(res.fecha) }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  Horario
+                </dt>
+                <dd class="mt-1 font-semibold text-stone-900">
+                  {{ res.horaInicio }} – {{ res.horaFin }}
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  Asistentes
+                </dt>
+                <dd class="mt-1 font-semibold text-stone-900">
+                  {{ res.cantidadPersonas }} persona(s)
+                </dd>
+              </div>
+              <div>
+                <dt class="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                  Subtotal
+                </dt>
+                <dd class="mt-1 text-lg font-bold text-[#23312b]">
+                  {{ formatCurrency(res.subtotal) }}
+                </dd>
+              </div>
+            </dl>
+
+            <div class="grid gap-4 border-t border-stone-100 pt-5 sm:grid-cols-2">
+              <div class="rounded-xl border border-stone-200 bg-stone-50/70 p-4">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                    Cliente
+                  </span>
+                  <a
+                    [routerLink]="['/usuarios', res.usuarioId]"
+                    class="text-xs font-semibold text-[#23312b] hover:underline"
+                  >
+                    Ver historial
+                  </a>
+                </div>
+                @if (usuario(); as cli) {
+                  <p class="mt-2 font-semibold text-stone-900">{{ cli.nombre }}</p>
+                  <p class="text-xs text-stone-600">{{ cli.correo }}</p>
+                  <p class="mt-0.5 text-xs text-stone-500">{{ cli.telefono }}</p>
+                } @else {
+                  <p class="mt-2 font-mono text-xs text-stone-600">{{ res.usuarioId }}</p>
+                }
+              </div>
+
+              <div class="rounded-xl border border-stone-200 bg-stone-50/70 p-4">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold uppercase tracking-wide text-stone-500">
+                    Espacio
+                  </span>
+                  <a
+                    [routerLink]="['/espacios', res.espacioId]"
+                    class="text-xs font-semibold text-[#23312b] hover:underline"
+                  >
+                    Ver espacio
+                  </a>
+                </div>
+                @if (espacio(); as esp) {
+                  <p class="mt-2 font-semibold text-stone-900">{{ esp.nombre }}</p>
+                  <p class="text-xs text-stone-600">
+                    {{ esp.tipo }} · {{ formatCurrency(esp.costoPorHora) }}/hora
+                  </p>
+                  <p class="mt-0.5 text-xs text-stone-500">
+                    Capacidad máxima: {{ esp.capacidadMaxima }} pers.
+                  </p>
+                } @else {
+                  <p class="mt-2 font-mono text-xs text-stone-600">{{ res.espacioId }}</p>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-stone-900">Pago y cobro</h2>
+
+            @if (pago(); as p) {
+              <div class="space-y-3 text-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-stone-500">Estado del pago</span>
+                  <app-status-badge [value]="p.estado" />
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-stone-500">Método</span>
+                  <span class="font-semibold text-stone-900">
+                    {{ p.metodo ?? 'No especificado' }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-stone-500">Monto</span>
+                  <span class="font-bold text-stone-900">
+                    {{ formatCurrency(p.montoTotal) }}
+                  </span>
+                </div>
+                @if (p.referencia) {
+                  <div class="flex items-center justify-between gap-2">
+                    <span class="text-stone-500">Referencia</span>
+                    <span class="font-mono text-xs text-stone-800">{{ p.referencia }}</span>
+                  </div>
+                }
+                <div class="border-t border-stone-100 pt-2">
+                  <p class="font-mono text-[11px] text-stone-400">
+                    Pago ID: {{ p.id }}
+                  </p>
+                </div>
+
+                @if (p.estado === 'PENDIENTE' && res.estado !== 'cancelada') {
+                  <button
+                    type="button"
+                    (click)="solicitarAccion('completarPago')"
+                    class="w-full rounded-lg bg-[#23312b] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#354b42]"
+                  >
+                    Completar pago pendiente
+                  </button>
+                }
+              </div>
+            } @else if (res.estado === 'pendiente' && !res.pagoId) {
+              <div class="space-y-4">
+                <div class="rounded-xl bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+                  Esta reservación no tiene pago registrado. Puedes registrar el cobro presencial en efectivo para confirmarla al instante.
+                </div>
+
+                <div>
+                  <label for="pago-referencia" class="block text-xs font-semibold uppercase tracking-wide text-stone-600">
+                    Referencia o folio (opcional)
+                  </label>
+                  <input
+                    id="pago-referencia"
+                    type="text"
+                    [formControl]="referenciaControl"
+                    placeholder="Ej. RECIBO-CAJA-104"
+                    class="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-[#23312b] focus:outline-none focus:ring-2 focus:ring-[#23312b]/20"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  (click)="solicitarAccion('cobrarEfectivo')"
+                  class="w-full rounded-lg bg-[#23312b] px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-[#354b42]"
+                >
+                  Cobrar {{ formatCurrency(res.subtotal) }} en efectivo
+                </button>
+              </div>
+            } @else {
+              <p class="text-sm text-stone-500">
+                No hay pago registrado para esta reservación.
+              </p>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  </app-async-state>
+</div>
+
+@if (modalConfig(); as cfg) {
+  <app-confirm-modal
+    [isOpen]="true"
+    [title]="cfg.title"
+    [message]="cfg.message"
+    [detail]="cfg.detail"
+    [confirmLabel]="cfg.confirmLabel"
+    [variant]="cfg.variant"
+    [isLoading]="isProcessingAction()"
+    (confirmed)="confirmarAccion()"
+    (cancelled)="cerrarModal()"
+  />
+}

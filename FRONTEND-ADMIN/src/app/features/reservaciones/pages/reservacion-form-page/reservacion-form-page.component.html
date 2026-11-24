@@ -1,0 +1,249 @@
+<div class="mx-auto max-w-4xl space-y-6">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <a
+        routerLink="/reservaciones"
+        class="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900"
+      >
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+        </svg>
+        Volver a reservaciones
+      </a>
+      <h1 class="mt-2 text-2xl font-bold tracking-tight text-stone-900">
+        Nueva reservación manual
+      </h1>
+      <p class="mt-1 text-sm text-stone-600">
+        Registra una reserva en nombre de un cliente validando horarios, capacidad y traslapes del espacio.
+      </p>
+    </div>
+  </div>
+
+  <app-async-state
+    [isLoading]="isLoading()"
+    [error]="loadError()"
+    loadingMessage="Cargando usuarios y espacios disponibles…"
+    (retry)="cargarCatalogos()"
+  >
+    <div class="grid gap-6 lg:grid-cols-3">
+      <form
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+        class="space-y-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm lg:col-span-2"
+      >
+        <app-domain-error-alert [error]="submitError()" />
+
+        <div>
+          <label for="res-usuario" class="block text-sm font-semibold text-stone-800">
+            Cliente o usuario
+          </label>
+          <select
+            id="res-usuario"
+            formControlName="usuarioId"
+            class="mt-1.5 block w-full rounded-lg border bg-white px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2"
+            [class]="
+              hasFieldError('usuarioId')
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                : 'border-stone-300 focus:border-[#23312b] focus:ring-[#23312b]/20'
+            "
+          >
+            <option value="">Selecciona un usuario…</option>
+            @for (u of usuarios(); track u.id) {
+              <option [value]="u.id">{{ u.nombre }} ({{ u.correo }}) · {{ u.rol }}</option>
+            }
+          </select>
+          <app-field-error [control]="form.controls.usuarioId" fieldName="cliente" />
+        </div>
+
+        <div>
+          <label for="res-espacio" class="block text-sm font-semibold text-stone-800">
+            Espacio activo
+          </label>
+          <select
+            id="res-espacio"
+            formControlName="espacioId"
+            class="mt-1.5 block w-full rounded-lg border bg-white px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2"
+            [class]="
+              hasFieldError('espacioId')
+                ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                : 'border-stone-300 focus:border-[#23312b] focus:ring-[#23312b]/20'
+            "
+          >
+            <option value="">Selecciona un espacio activo…</option>
+            @for (esp of espacios(); track esp.id) {
+              <option [value]="esp.id">
+                {{ esp.nombre }} · {{ esp.tipo }} ({{ formatCurrency(esp.costoPorHora) }}/h · máx. {{ esp.capacidadMaxima }} pers.)
+              </option>
+            }
+          </select>
+          <app-field-error [control]="form.controls.espacioId" fieldName="espacio" />
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="res-fecha" class="block text-sm font-semibold text-stone-800">
+              Fecha
+            </label>
+            <input
+              id="res-fecha"
+              type="date"
+              formControlName="fecha"
+              class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2"
+              [class]="
+                hasFieldError('fecha')
+                  ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                  : 'border-stone-300 focus:border-[#23312b] focus:ring-[#23312b]/20'
+              "
+            />
+            <app-field-error [control]="form.controls.fecha" fieldName="fecha" />
+          </div>
+
+          <div>
+            <label for="res-personas" class="block text-sm font-semibold text-stone-800">
+              Cantidad de personas
+            </label>
+            <input
+              id="res-personas"
+              type="number"
+              min="1"
+              formControlName="cantidadPersonas"
+              class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2"
+              [class]="
+                hasFieldError('cantidadPersonas')
+                  ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                  : 'border-stone-300 focus:border-[#23312b] focus:ring-[#23312b]/20'
+              "
+            />
+            <app-field-error
+              [control]="form.controls.cantidadPersonas"
+              fieldName="cantidad de personas"
+            />
+            @if (capacidadExcedidaWarning()) {
+              <p class="mt-1 text-xs font-medium text-amber-700">
+                Supera la capacidad máxima sugerida ({{ selectedEspacio()?.capacidadMaxima }} pers.).
+              </p>
+            }
+          </div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label for="res-hora-inicio" class="block text-sm font-semibold text-stone-800">
+              Hora de inicio (HH:mm)
+            </label>
+            <input
+              id="res-hora-inicio"
+              type="time"
+              formControlName="horaInicio"
+              class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2"
+              [class]="
+                hasFieldError('horaInicio')
+                  ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                  : 'border-stone-300 focus:border-[#23312b] focus:ring-[#23312b]/20'
+              "
+            />
+            <app-field-error
+              [control]="form.controls.horaInicio"
+              fieldName="hora de inicio"
+            />
+          </div>
+
+          <div>
+            <label for="res-hora-fin" class="block text-sm font-semibold text-stone-800">
+              Hora de fin (HH:mm)
+            </label>
+            <input
+              id="res-hora-fin"
+              type="time"
+              formControlName="horaFin"
+              class="mt-1.5 block w-full rounded-lg border px-3 py-2 text-sm text-stone-900 focus:outline-none focus:ring-2"
+              [class]="
+                hasFieldError('horaFin')
+                  ? 'border-red-500 focus:border-red-600 focus:ring-red-200'
+                  : 'border-stone-300 focus:border-[#23312b] focus:ring-[#23312b]/20'
+              "
+            />
+            <app-field-error
+              [control]="form.controls.horaFin"
+              fieldName="hora de fin"
+              [customMessages]="{
+                horaFinInvalida: 'La hora de fin debe ser posterior a la hora de inicio.'
+              }"
+            />
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-end gap-3 border-t border-stone-100 pt-4">
+          <a
+            routerLink="/reservaciones"
+            class="rounded-lg border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 hover:bg-stone-50"
+          >
+            Cancelar
+          </a>
+          <button
+            type="submit"
+            [disabled]="isSubmitting()"
+            class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#23312b] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#354b42] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            @if (isSubmitting()) {
+              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+            }
+            Crear reservación
+          </button>
+        </div>
+      </form>
+
+      <aside class="space-y-4">
+        <div class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+          <h2 class="text-base font-bold text-stone-900">Resumen estimado</h2>
+          <dl class="mt-4 space-y-3 text-sm">
+            <div class="flex justify-between gap-2">
+              <dt class="text-stone-500">Cliente</dt>
+              <dd class="text-right font-medium text-stone-900">
+                {{ selectedUsuario()?.nombre ?? 'Sin seleccionar' }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-stone-500">Espacio</dt>
+              <dd class="text-right font-medium text-stone-900">
+                {{ selectedEspacio()?.nombre ?? 'Sin seleccionar' }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-stone-500">Duración</dt>
+              <dd class="font-medium text-stone-900">
+                {{ duracionHoras() > 0 ? duracionHoras() + ' h' : '—' }}
+              </dd>
+            </div>
+            <div class="flex justify-between gap-2">
+              <dt class="text-stone-500">Tarifa por hora</dt>
+              <dd class="font-medium text-stone-900">
+                {{
+                  selectedEspacio()
+                    ? formatCurrency(selectedEspacio()!.costoPorHora)
+                    : '—'
+                }}
+              </dd>
+            </div>
+            <div class="border-t border-stone-100 pt-3 flex justify-between gap-2">
+              <dt class="font-semibold text-stone-900">Subtotal estimado</dt>
+              <dd class="text-lg font-bold text-[#23312b]">
+                {{ formatCurrency(subtotalEstimado()) }}
+              </dd>
+            </div>
+          </dl>
+
+          @if (selectedEspacio(); as esp) {
+            <div class="mt-4 rounded-xl bg-[#f4f6f2] p-3 text-xs text-stone-700 space-y-1">
+              <p>Capacidad máxima: <strong>{{ esp.capacidadMaxima }}</strong> personas</p>
+              <p>Bloque base: <strong>{{ esp.duracionMinutos }}</strong> min</p>
+              <p>
+                Rango permitido: <strong>{{ esp.minimoHorasReserva }}–{{ esp.maximoHorasReserva }}</strong> horas
+              </p>
+            </div>
+          }
+        </div>
+      </aside>
+    </div>
+  </app-async-state>
+</div>

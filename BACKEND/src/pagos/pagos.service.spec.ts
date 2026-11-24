@@ -32,17 +32,22 @@ describe('PagosService', () => {
     expect((await reservaciones.obtenerPorId('r1'))?.pagoId).toBe(pago.id);
   });
 
-  it('cliente con EFECTIVO queda PENDIENTE y el admin lo completa una sola vez', async () => {
+  it('cliente con EFECTIVO queda PENDIENTE y al completarPago pasan a COMPLETADO y CONFIRMADA', async () => {
     const [pago] = await service.registrarPago({ reservacionIds: ['r1'], metodo: MetodoPago.EFECTIVO }, cliente);
     expect(pago.estado).toBe(EstadoPago.PENDIENTE);
+    expect((await reservaciones.obtenerPorId('r1'))?.estado).toBe(EstadoReservacion.PENDIENTE);
+
     expect((await service.completarPago(pago.id)).estado).toBe(EstadoPago.COMPLETADO);
+    expect((await reservaciones.obtenerPorId('r1'))?.estado).toBe(EstadoReservacion.CONFIRMADA);
+
     await expect(service.completarPago(pago.id)).rejects.toThrow(PagoEstadoInvalidoError);
     await expect(service.completarPago('x')).rejects.toThrow(PagoNoEncontradoError);
   });
 
-  it('el admin registra pagos (en cualquier método) de reservaciones de otros: COMPLETADO', async () => {
+  it('el admin registra pagos (en cualquier método) de reservaciones de otros: COMPLETADO y confirma la reserva', async () => {
     const [pago] = await service.registrarPago({ reservacionIds: ['ajena'], metodo: MetodoPago.EFECTIVO }, admin);
     expect(pago.estado).toBe(EstadoPago.COMPLETADO);
+    expect((await reservaciones.obtenerPorId('ajena'))?.estado).toBe(EstadoReservacion.CONFIRMADA);
   });
 
   it('paga varias reservaciones a la vez (un pago por reservación)', async () => {
@@ -74,11 +79,22 @@ describe('PagosService', () => {
     expect(pago.estado).toBe(EstadoPago.PENDIENTE);
   });
 
-  it('un pago registrado no confirma automáticamente la reserva', async () => {
+  it('un pago COMPLETADO confirma automáticamente una reserva PENDIENTE y es idempotente si ya estaba CONFIRMADA', async () => {
     await service.registrarPago(
-      { reservacionIds: ['r1'], metodo: MetodoPago.TARJETA, referencia: 'SIMULACION' }, cliente,
+      { reservacionIds: ['r1'], metodo: MetodoPago.TARJETA, referencia: 'SIMULACION' },
+      cliente,
     );
-    expect((await reservaciones.obtenerPorId('r1'))?.estado).toBe(EstadoReservacion.PENDIENTE);
+    expect((await reservaciones.obtenerPorId('r1'))?.estado).toBe(EstadoReservacion.CONFIRMADA);
+
+    await reservaciones.guardar(
+      reservacion('ya-confirmada', 'cliente-1', 250, EstadoReservacion.CONFIRMADA),
+    );
+    const [pago] = await service.registrarPago(
+      { reservacionIds: ['ya-confirmada'], metodo: MetodoPago.TARJETA, referencia: 'AUT-CONF' },
+      cliente,
+    );
+    expect(pago.estado).toBe(EstadoPago.COMPLETADO);
+    expect((await reservaciones.obtenerPorId('ya-confirmada'))?.estado).toBe(EstadoReservacion.CONFIRMADA);
   });
 
   it('solo completa una vez un pago con solicitudes simultáneas', async () => {

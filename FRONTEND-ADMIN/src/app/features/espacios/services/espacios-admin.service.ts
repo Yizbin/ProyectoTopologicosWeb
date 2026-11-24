@@ -62,6 +62,15 @@ export class EspaciosAdminService {
     );
   }
 
+  listarTodosEspacios(
+    estadoActivo: 'todos' | 'activos' | 'inactivos' = 'todos',
+  ): Observable<EspacioBuscado[]> {
+    const httpParams = new HttpParams().set('estadoActivo', estadoActivo);
+    return this.http.get<EspacioBuscado[]>(`${this.apiBaseUrl}/espacios`, {
+      params: httpParams,
+    });
+  }
+
   obtenerEspacio(id: string): Observable<Espacio> {
     return this.http.get<Espacio>(
       `${this.apiBaseUrl}/espacios/${encodeURIComponent(id)}`,

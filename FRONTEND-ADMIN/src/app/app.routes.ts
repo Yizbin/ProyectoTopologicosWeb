@@ -3,7 +3,6 @@ import { authGuard } from './core/guards/auth.guard';
 import { guestGuard } from './core/guards/guest.guard';
 import { unsavedChangesGuard } from './core/guards/unsaved-changes.guard';
 import { LoginPageComponent } from './features/auth/pages/login-page/login-page.component';
-import { ModulePlaceholderComponent } from './shared/components/module-placeholder/module-placeholder.component';
 import { AdminLayoutComponent } from './shared/layouts/admin-layout/admin-layout.component';
 
 export const routes: Routes = [
@@ -61,30 +60,54 @@ export const routes: Routes = [
       },
       {
         path: 'reservaciones',
-        component: ModulePlaceholderComponent,
-        data: {
-          title: 'Reservaciones',
-          description:
-            'Agenda operativa, creación manual y gestión de estados de reservación.',
-        },
+        loadComponent: () =>
+          import(
+            './features/reservaciones/pages/reservaciones-list-page/reservaciones-list-page.component'
+          ).then((m) => m.ReservacionesListPageComponent),
+      },
+      {
+        path: 'reservaciones/nueva',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () =>
+          import(
+            './features/reservaciones/pages/reservacion-form-page/reservacion-form-page.component'
+          ).then((m) => m.ReservacionFormPageComponent),
+      },
+      {
+        path: 'reservaciones/:id',
+        loadComponent: () =>
+          import(
+            './features/reservaciones/pages/reservacion-detail-page/reservacion-detail-page.component'
+          ).then((m) => m.ReservacionDetailPageComponent),
       },
       {
         path: 'pagos',
-        component: ModulePlaceholderComponent,
-        data: {
-          title: 'Pagos',
-          description:
-            'Consulta de pagos registrados, cobros en efectivo y confirmación de pendientes.',
-        },
+        loadComponent: () =>
+          import(
+            './features/pagos/pages/pagos-list-page/pagos-list-page.component'
+          ).then((m) => m.PagosListPageComponent),
       },
       {
         path: 'usuarios',
-        component: ModulePlaceholderComponent,
-        data: {
-          title: 'Usuarios',
-          description:
-            'Directorio de clientes y operadores administrativos del sistema.',
-        },
+        loadComponent: () =>
+          import(
+            './features/usuarios/pages/usuarios-list-page/usuarios-list-page.component'
+          ).then((m) => m.UsuariosListPageComponent),
+      },
+      {
+        path: 'usuarios/nuevo',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () =>
+          import(
+            './features/usuarios/pages/usuario-form-page/usuario-form-page.component'
+          ).then((m) => m.UsuarioFormPageComponent),
+      },
+      {
+        path: 'usuarios/:id',
+        loadComponent: () =>
+          import(
+            './features/usuarios/pages/usuario-detail-page/usuario-detail-page.component'
+          ).then((m) => m.UsuarioDetailPageComponent),
       },
     ],
   },
