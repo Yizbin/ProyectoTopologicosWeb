@@ -1,0 +1,214 @@
+<div class="space-y-6">
+  <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <p class="m-0 text-xs font-semibold uppercase tracking-[0.18em] text-[#526e5c]">
+        Catálogo operativo
+      </p>
+      <h2 class="mt-1 mb-0 text-2xl font-semibold tracking-tight text-[#23312b]">
+        Gestión de Espacios
+      </h2>
+      <p class="mt-1 mb-0 text-sm text-stone-600">
+        Administra salas, cubículos y estaciones, sus tarifas, horarios y bloqueos.
+      </p>
+    </div>
+
+    <a routerLink="/espacios/nuevo"
+      class="inline-flex items-center justify-center gap-2 rounded-xl bg-[#23312b] px-4 py-2.5 text-sm font-semibold text-white shadow-xs transition hover:bg-[#354b42]">
+      <svg aria-hidden="true" class="h-4 w-4 text-[#e4b390]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      Nuevo espacio
+    </a>
+  </div>
+
+  <form [formGroup]="filterForm" (ngSubmit)="aplicarFiltros()"
+    class="grid grid-cols-1 gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-xs sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+    <div class="lg:col-span-4">
+      <label for="espacios-search" class="block text-[11px] font-semibold uppercase tracking-wider text-stone-600">
+        Buscar
+      </label>
+      <input id="espacios-search" type="text" formControlName="busqueda" placeholder="Nombre, descripción o amenidad…"
+        class="mt-1 w-full rounded-xl border border-stone-300 bg-stone-50/70 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[#526e5c] focus:bg-white" />
+    </div>
+
+    <div class="lg:col-span-2">
+      <label for="espacios-tipo" class="block text-[11px] font-semibold uppercase tracking-wider text-stone-600">
+        Tipo
+      </label>
+      <select id="espacios-tipo" formControlName="tipo"
+        class="mt-1 w-full rounded-xl border border-stone-300 bg-stone-50/70 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[#526e5c] focus:bg-white">
+        <option value="">Todos</option>
+        <option value="Sala">Sala</option>
+        <option value="Cubiculo">Cubículo</option>
+        <option value="PC">PC</option>
+      </select>
+    </div>
+
+    <div class="lg:col-span-2">
+      <label for="espacios-estado" class="block text-[11px] font-semibold uppercase tracking-wider text-stone-600">
+        Estado
+      </label>
+      <select id="espacios-estado" formControlName="estadoActivo"
+        class="mt-1 w-full rounded-xl border border-stone-300 bg-stone-50/70 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[#526e5c] focus:bg-white">
+        <option value="todos">Todos</option>
+        <option value="activos">Activos</option>
+        <option value="inactivos">Inactivos</option>
+      </select>
+    </div>
+
+    <div class="lg:col-span-2">
+      <label for="espacios-sede" class="block text-[11px] font-semibold uppercase tracking-wider text-stone-600">
+        Sede
+      </label>
+      <select id="espacios-sede" formControlName="sedeId"
+        class="mt-1 w-full rounded-xl border border-stone-300 bg-stone-50/70 px-3 py-2 text-sm text-stone-900 outline-none focus:border-[#526e5c] focus:bg-white">
+        <option value="">Todas las sedes</option>
+        @for (sede of sedes(); track sede.id) {
+        <option [value]="sede.id">{{ sede.nombre }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="flex flex-wrap gap-2 lg:col-span-2 lg:justify-end">
+      <button type="submit"
+        class="rounded-xl bg-[#23312b] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#354b42]">
+        Aplicar
+      </button>
+      @if (hasActiveFilters()) {
+      <button type="button" (click)="limpiarFiltros()"
+        class="rounded-xl border border-stone-300 bg-stone-50 px-3 py-2 text-xs font-medium text-stone-700 transition hover:bg-stone-100">
+        Limpiar filtros
+      </button>
+      }
+    </div>
+  </form>
+
+  @if (actionSuccess(); as successMsg) {
+  <div role="status"
+    class="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+    <span>{{ successMsg }}</span>
+    <button type="button" aria-label="Cerrar aviso" (click)="actionSuccess.set(null)"
+      class="text-emerald-700 hover:text-emerald-950">
+      ×
+    </button>
+  </div>
+  }
+
+  <app-domain-error-alert [error]="actionError()" [dismissible]="true" (dismissed)="actionError.set(null)" />
+
+  <app-async-state [isLoading]="isLoading()" [error]="error()"
+    [isEmpty]="!resultado() || resultado()!.items.length === 0" loadingMessage="Cargando inventario de espacios…"
+    emptyTitle="No hay espacios para mostrar" [emptyMessage]="
+      hasActiveFilters()
+        ? 'Ningún espacio coincide con los filtros seleccionados. Prueba limpiando o ajustando la búsqueda.'
+        : 'Todavía no hay espacios registrados en el catálogo.'
+    " (retry)="cargarEspacios()">
+    <div emptyAction>
+      @if (hasActiveFilters()) {
+      <button type="button" (click)="limpiarFiltros()"
+        class="inline-flex items-center rounded-xl bg-[#23312b] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#354b42]">
+        Limpiar filtros
+      </button>
+      } @else {
+      <a routerLink="/espacios/nuevo"
+        class="inline-flex items-center rounded-xl bg-[#23312b] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#354b42]">
+        Crear primer espacio
+      </a>
+      }
+    </div>
+
+    @if (resultado(); as pageData) {
+    <div class="space-y-4">
+      <div class="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xs">
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse text-left text-sm">
+            <thead>
+              <tr
+                class="border-b border-stone-200 bg-stone-50/90 text-[11px] font-semibold uppercase tracking-wider text-stone-600">
+                <th class="px-4 py-3.5">Espacio</th>
+                <th class="px-4 py-3.5">Tipo</th>
+                <th class="px-4 py-3.5">Sede</th>
+                <th class="px-4 py-3.5">Capacidad y reglas</th>
+                <th class="px-4 py-3.5">Tarifa</th>
+                <th class="px-4 py-3.5">Estado</th>
+                <th class="px-4 py-3.5 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-stone-100">
+              @for (espacio of pageData.items; track espacio.id) {
+              <tr class="transition hover:bg-stone-50/80">
+                <td class="px-4 py-3.5">
+                  <a [routerLink]="['/espacios', espacio.id]"
+                    class="font-semibold text-stone-900 hover:text-[#526e5c] hover:underline">
+                    {{ espacio.nombre }}
+                  </a>
+                  <p class="mt-0.5 mb-0 line-clamp-1 max-w-xs text-xs text-stone-500">
+                    {{ espacio.descripcion }}
+                  </p>
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap text-xs font-medium text-stone-700">
+                  {{ espacio.tipo }}
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap text-xs text-stone-600">
+                  {{ getSedeNombre(espacio.sedeId) }}
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap text-xs text-stone-600">
+                  <span class="block font-medium text-stone-800">
+                    Hasta {{ espacio.capacidadMaxima }} pers.
+                  </span>
+                  <span class="text-stone-500">
+                    {{ espacio.minimoHorasReserva }}–{{ espacio.maximoHorasReserva }} h · bloq. {{
+                    espacio.duracionMinutos }}m
+                  </span>
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap font-semibold text-[#23312b]">
+                  ${{ espacio.costoPorHora }} MXN/h
+                </td>
+                <td class="px-4 py-3.5 whitespace-nowrap">
+                  <app-status-badge [value]="espacio.activo" />
+                </td>
+                <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                  <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                    <a [routerLink]="['/espacios', espacio.id]"
+                      class="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-stone-700 transition hover:bg-stone-100">
+                      Ver detalle
+                    </a>
+                    <a [routerLink]="['/espacios', espacio.id, 'editar']"
+                      class="rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-[#23312b] transition hover:bg-[#e4e9e0]/60">
+                      Editar
+                    </a>
+                    <button type="button" (click)="solicitarCambioEstado(espacio)"
+                      class="rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition" [class]="
+                            espacio.activo
+                              ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                              : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                          ">
+                      {{ espacio.activo ? 'Desactivar' : 'Reactivar' }}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <app-pagination [page]="pageData.page" [totalPages]="pageData.totalPages" [total]="pageData.total"
+        [limit]="pageData.limit" (pageChange)="onPageChange($event)" />
+    </div>
+    }
+  </app-async-state>
+
+  @if (espacioAConfirmar(); as target) {
+  <app-confirm-modal [isOpen]="true" [title]="target.activo ? 'Desactivar espacio' : 'Reactivar espacio'" [message]="
+        target.activo
+          ? 'Al desactivar este espacio dejará de mostrarse disponible para nuevas reservaciones en el portal del cliente.'
+          : 'Al reactivar este espacio volverá a mostrarse disponible en el catálogo público.'
+      " [detail]="target.nombre" [confirmLabel]="target.activo ? 'Sí, desactivar' : 'Sí, reactivar'"
+    cancelLabel="Cancelar" [variant]="target.activo ? 'danger' : 'primary'" [isLoading]="isTogglingEstado()"
+    (confirmed)="confirmarCambioEstado()" (cancelled)="cancelarCambioEstado()" />
+  }
+</div>

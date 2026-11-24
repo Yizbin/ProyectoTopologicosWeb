@@ -1,0 +1,64 @@
+@if (isOpen()) {
+<div class="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/60 p-4 backdrop-blur-xs"
+  (click)="onBackdropClick()">
+  <div role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title"
+    class="w-full max-w-md overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-2xl"
+    (click)="$event.stopPropagation()">
+    <div class="p-6">
+      <div class="flex items-start gap-4">
+        <div aria-hidden="true" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full"
+          [class]="iconWrapperClasses()">
+          @if (variant() === 'primary') {
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          } @else {
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+            <line x1="12" y1="9" x2="12" y2="13" />
+            <line x1="12" y1="17" x2="12.01" y2="17" />
+          </svg>
+          }
+        </div>
+
+        <div class="min-w-0 flex-1">
+          <h2 id="confirm-modal-title" class="text-lg font-semibold tracking-tight text-stone-900">
+            {{ title() }}
+          </h2>
+          <p class="mt-1.5 text-sm leading-relaxed text-stone-600">
+            {{ message() }}
+          </p>
+          @if (detail()) {
+          <div
+            class="mt-3 rounded-xl border border-stone-200 bg-stone-50 px-3.5 py-2.5 text-xs font-medium text-stone-700">
+            {{ detail() }}
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="flex flex-col-reverse gap-2.5 border-t border-stone-100 bg-stone-50/70 px-6 py-4 sm:flex-row sm:justify-end">
+      <button type="button" [disabled]="isLoading()" (click)="onCancel()"
+        class="inline-flex items-center justify-center rounded-xl border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50">
+        {{ cancelLabel() }}
+      </button>
+
+      <button type="button" [disabled]="isLoading()" (click)="onConfirm()"
+        class="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-xs transition disabled:cursor-not-allowed disabled:opacity-60"
+        [class]="confirmButtonClasses()">
+        @if (isLoading()) {
+        <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+        Procesando…
+        } @else {
+        {{ confirmLabel() }}
+        }
+      </button>
+    </div>
+  </div>
+</div>
+}

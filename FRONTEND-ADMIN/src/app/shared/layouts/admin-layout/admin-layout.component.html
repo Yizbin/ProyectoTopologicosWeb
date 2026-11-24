@@ -1,0 +1,168 @@
+<div class="min-h-screen bg-[#f6f5f0] text-[#23312b] flex">
+  @if (mobileMenuOpen()) {
+  <div class="fixed inset-0 z-40 bg-stone-950/55 backdrop-blur-xs lg:hidden" (click)="closeMobileMenu()"></div>
+  }
+
+  <aside aria-label="Navegación administrativa"
+    class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-white/10 bg-[#23312b] text-[#f6f5f0] transition-transform duration-200 lg:static lg:translate-x-0"
+    [class.translate-x-0]="mobileMenuOpen()" [class.-translate-x-full]="!mobileMenuOpen()">
+    <div class="flex h-16 items-center justify-between border-b border-white/10 px-5">
+      <a routerLink="/dashboard" (click)="closeMobileMenu()" class="flex items-center gap-3">
+        <span
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[#e4b390]/35 bg-[#526e5c] text-white">
+          <svg aria-hidden="true" class="h-4 w-4 text-[#f4eadc]" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+        </span>
+        <div>
+          <span class="block text-sm font-bold tracking-tight text-white">
+            Casa Norte
+          </span>
+          <span class="block text-[10px] font-semibold uppercase tracking-[0.16em] text-[#e4b390]">
+            Administración
+          </span>
+        </div>
+      </a>
+
+      <button type="button" aria-label="Cerrar menú lateral" (click)="closeMobileMenu()"
+        class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-stone-300 transition hover:bg-white/10 hover:text-white lg:hidden">
+        <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+    </div>
+
+    <nav class="flex-1 space-y-1 px-3 py-4">
+      @for (item of visibleNavItems(); track item.route) {
+      <a [routerLink]="item.route" routerLinkActive="bg-[#526e5c] text-white shadow-xs" #rla="routerLinkActive"
+        (click)="closeMobileMenu()"
+        class="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition"
+        [class.text-stone-300]="!rla.isActive" [class.hover:bg-white/10]="!rla.isActive"
+        [class.hover:text-white]="!rla.isActive">
+        <span aria-hidden="true" class="shrink-0" [class.text-[#e4b390]]="rla.isActive"
+          [class.text-stone-400]="!rla.isActive">
+          @switch (item.icon) {
+          @case ('dashboard') {
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="9" rx="1" />
+            <rect x="14" y="3" width="7" height="5" rx="1" />
+            <rect x="14" y="12" width="7" height="9" rx="1" />
+            <rect x="3" y="16" width="7" height="5" rx="1" />
+          </svg>
+          }
+          @case ('espacios') {
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18" />
+            <path d="M5 21V7l8-4v18" />
+            <path d="M19 21V11l-6-4" />
+          </svg>
+          }
+          @case ('reservaciones') {
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          }
+          @case ('pagos') {
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="5" width="20" height="14" rx="2" />
+            <line x1="2" y1="10" x2="22" y2="10" />
+          </svg>
+          }
+          @case ('usuarios') {
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          }
+          }
+        </span>
+        <span>{{ item.label }}</span>
+      </a>
+      }
+    </nav>
+
+    <div class="border-t border-white/10 p-4">
+      <p class="m-0 text-[11px] font-medium uppercase tracking-[0.14em] text-stone-400">
+        Backoffice v1.0
+      </p>
+      <p class="mt-0.5 mb-0 text-xs text-stone-300">
+        Operación interna Casa Norte
+      </p>
+    </div>
+  </aside>
+
+  <div class="flex min-w-0 flex-1 flex-col">
+    <header class="sticky top-0 z-30 border-b border-stone-200/90 bg-white/95 backdrop-blur-xs">
+      <div class="flex h-16 items-center justify-between gap-4 px-4 sm:px-6">
+        <div class="flex items-center gap-3">
+          <button type="button" aria-label="Abrir menú lateral" [attr.aria-expanded]="mobileMenuOpen()"
+            (click)="toggleMobileMenu()"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-stone-300 bg-white text-stone-700 transition hover:bg-stone-100 lg:hidden">
+            <svg aria-hidden="true" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+
+          <div>
+            <h1 class="m-0 text-sm font-semibold tracking-tight text-[#23312b] sm:text-base">
+              Casa Norte · Administración
+            </h1>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+          @if (user(); as currentUser) {
+          <div
+            class="hidden items-center gap-2.5 rounded-xl border border-stone-200 bg-stone-50/80 px-3 py-1.5 sm:flex">
+            <div class="text-right leading-tight">
+              <p class="m-0 text-xs font-semibold text-stone-900">
+                {{ currentUser.nombre }}
+              </p>
+              <p class="m-0 text-[11px] text-stone-500">
+                {{ currentUser.correo }}
+              </p>
+            </div>
+            <app-status-badge [value]="currentUser.rol" />
+          </div>
+          }
+
+          <button type="button" (click)="logout()"
+            class="inline-flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-3.5 py-2 text-xs font-semibold text-stone-800 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
+            <svg aria-hidden="true" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="flex-1 bg-[#f6f5f0] p-4 sm:p-6 lg:p-8">
+      <div class="mx-auto max-w-7xl">
+        <router-outlet />
+      </div>
+    </main>
+  </div>
+</div>
