@@ -9,6 +9,7 @@ export class Usuario implements AuthenticatedCustomer {
         public correo: string,
         public telefono: string,
         public contrasena: string,
-        public rol: RolUsuario
+        public rol: RolUsuario,
+        public activo: boolean = true
     ) {}
 }
