@@ -11,6 +11,17 @@
     </a>
   </div>
 
+  @if (aviso(); as mensaje) {
+    <div role="status"
+      class="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <span>{{ mensaje }}</span>
+      <button type="button" aria-label="Cerrar aviso" (click)="aviso.set(null)"
+        class="text-emerald-700 hover:text-emerald-950">×</button>
+    </div>
+  }
+
+  <app-domain-error-alert [error]="actionError()" [dismissible]="true" (dismissed)="actionError.set(null)" />
+
   <app-async-state backLink="/usuarios" backLabel="Volver al listado"
     [isLoading]="isLoading()"
     [error]="loadError()"
@@ -26,6 +37,7 @@
                 {{ u.nombre }}
               </h1>
               <app-status-badge [value]="u.rol" />
+              <app-status-badge [value]="estaActivo()" />
             </div>
             <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-sm text-stone-600">
               <span>{{ u.correo }}</span>
@@ -33,13 +45,35 @@
             </div>
           </div>
 
-          <a
-            [routerLink]="['/reservaciones/nueva']"
-            [queryParams]="{ usuarioId: u.id }"
-            class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#23312b] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#354b42]"
-          >
-            + Crear reservación para este cliente
-          </a>
+          <div class="flex flex-wrap items-center gap-2">
+            <a
+              [routerLink]="['/usuarios', u.id, 'editar']"
+              class="inline-flex items-center justify-center rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-sm font-semibold text-stone-800 transition-colors hover:bg-stone-50"
+            >
+              Editar
+            </a>
+            @if (!esCuentaPropia()) {
+              <button
+                type="button"
+                (click)="solicitarCambioEstado()"
+                class="inline-flex items-center justify-center rounded-lg border px-4 py-2.5 text-sm font-semibold transition-colors"
+                [class]="estaActivo()
+                  ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                  : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'"
+              >
+                {{ estaActivo() ? 'Desactivar cuenta' : 'Reactivar cuenta' }}
+              </button>
+            }
+            @if (estaActivo() && u.rol === 'CLIENTE') {
+              <a
+                [routerLink]="['/reservaciones/nueva']"
+                [queryParams]="{ usuarioId: u.id }"
+                class="inline-flex items-center justify-center gap-2 rounded-lg bg-[#23312b] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#354b42]"
+              >
+                + Crear reservación para este cliente
+              </a>
+            }
+          </div>
         </div>
 
         <div class="grid gap-4 sm:grid-cols-4">
@@ -152,4 +186,17 @@
       </div>
     }
   </app-async-state>
+
+  @if (confirmandoEstado() && usuario(); as u) {
+    <app-confirm-modal [isOpen]="true"
+      [title]="estaActivo() ? 'Desactivar cuenta' : 'Reactivar cuenta'"
+      [message]="estaActivo()
+        ? 'La persona ya no podrá iniciar sesión ni en el portal ni en el panel, y su sesión abierta se cerrará en su siguiente acción. Sus reservaciones e historial se conservan.'
+        : 'La persona podrá volver a iniciar sesión con su contraseña actual.'"
+      [detail]="u.nombre + ' · ' + u.correo"
+      [confirmLabel]="estaActivo() ? 'Sí, desactivar' : 'Sí, reactivar'"
+      cancelLabel="Cancelar" [variant]="estaActivo() ? 'danger' : 'primary'"
+      [isLoading]="isTogglingEstado()"
+      (confirmed)="confirmarCambioEstado()" (cancelled)="cancelarCambioEstado()" />
+  }
 </div>

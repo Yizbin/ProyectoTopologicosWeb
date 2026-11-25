@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 import type {
+  ActualizarUsuarioRequest,
   CrearUsuarioRequest,
   ResultadoPaginado,
   RolUsuario,
@@ -12,6 +13,7 @@ import type {
 export interface ListarUsuariosAdminParams {
   busqueda?: string;
   rol?: RolUsuario | '';
+  estado?: 'activos' | 'inactivos' | '';
   page?: number;
   limit?: number;
 }
@@ -34,6 +36,9 @@ export class UsuariosAdminService {
     }
     if (params.rol) {
       httpParams = httpParams.set('rol', params.rol);
+    }
+    if (params.estado) {
+      httpParams = httpParams.set('activo', params.estado === 'activos' ? 'true' : 'false');
     }
 
     return this.http.get<ResultadoPaginado<UsuarioPublico>>(
@@ -60,5 +65,19 @@ export class UsuariosAdminService {
 
   crear(dto: CrearUsuarioRequest): Observable<UsuarioPublico> {
     return this.http.post<UsuarioPublico>(`${this.apiBaseUrl}/usuarios`, dto);
+  }
+
+  actualizar(id: string, dto: ActualizarUsuarioRequest): Observable<UsuarioPublico> {
+    return this.http.patch<UsuarioPublico>(
+      `${this.apiBaseUrl}/usuarios/${encodeURIComponent(id)}`,
+      dto,
+    );
+  }
+
+  cambiarEstado(id: string, activo: boolean): Observable<UsuarioPublico> {
+    return this.http.patch<UsuarioPublico>(
+      `${this.apiBaseUrl}/usuarios/${encodeURIComponent(id)}/estado`,
+      { activo },
+    );
   }
 }

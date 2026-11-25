@@ -23,6 +23,8 @@ export interface UsuarioPublico {
   correo: string;
   telefono: string;
   rol: RolUsuario;
+  /** Ausente en respuestas antiguas: se interpreta como activo. */
+  activo?: boolean;
 }
 
 export type UsuarioAutenticado = Pick<UsuarioPublico, 'id' | 'nombre' | 'correo' | 'rol'>;
@@ -32,6 +34,14 @@ export interface CrearUsuarioRequest {
   correo: string;
   telefono: string;
   contrasena: string;
+  rol?: RolUsuario;
+}
+
+export interface ActualizarUsuarioRequest {
+  nombre?: string;
+  correo?: string;
+  telefono?: string;
+  contrasena?: string;
   rol?: RolUsuario;
 }
 

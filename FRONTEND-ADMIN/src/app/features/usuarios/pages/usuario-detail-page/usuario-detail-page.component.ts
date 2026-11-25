@@ -1,5 +1,5 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, of } from 'rxjs';
 import {
   isApiError,
@@ -8,8 +8,11 @@ import {
   type Reservacion,
   type UsuarioPublico,
 } from '../../../../core/models';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
   AsyncStateComponent,
+  ConfirmModalComponent,
+  DomainErrorAlertComponent,
   StatusBadgeComponent,
 } from '../../../../shared/components';
 import { EspaciosAdminService } from '../../../espacios/services/espacios-admin.service';
@@ -35,7 +38,13 @@ function toIsoDateKey(value: string | Date): string {
 @Component({
   selector: 'app-usuario-detail-page',
   standalone: true,
-  imports: [RouterLink, AsyncStateComponent, StatusBadgeComponent],
+  imports: [
+    RouterLink,
+    AsyncStateComponent,
+    ConfirmModalComponent,
+    DomainErrorAlertComponent,
+    StatusBadgeComponent,
+  ],
   templateUrl: './usuario-detail-page.component.html',
 })
 export class UsuarioDetailPageComponent implements OnInit {
@@ -43,6 +52,8 @@ export class UsuarioDetailPageComponent implements OnInit {
   private readonly usuariosService = inject(UsuariosAdminService);
   private readonly reservacionesService = inject(ReservacionesAdminService);
   private readonly espaciosService = inject(EspaciosAdminService);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   readonly usuarioId = signal('');
   readonly usuario = signal<UsuarioPublico | null>(null);
@@ -51,6 +62,16 @@ export class UsuarioDetailPageComponent implements OnInit {
 
   readonly isLoading = signal(true);
   readonly loadError = signal<ApiError | null>(null);
+
+  readonly aviso = signal<string | null>(null);
+  readonly actionError = signal<ApiError | null>(null);
+  readonly confirmandoEstado = signal(false);
+  readonly isTogglingEstado = signal(false);
+
+  readonly estaActivo = computed(() => this.usuario()?.activo !== false);
+  readonly esCuentaPropia = computed(
+    () => this.authService.user()?.id === this.usuarioId(),
+  );
 
   readonly espaciosMap = computed<Record<string, string>>(() => {
     const map: Record<string, string> = {};
@@ -101,7 +122,58 @@ export class UsuarioDetailPageComponent implements OnInit {
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id') ?? '';
     this.usuarioId.set(id);
+    const aviso: unknown =
+      this.router.currentNavigation()?.extras.state?.['aviso'] ??
+      (typeof history !== 'undefined' ? history.state?.aviso : undefined);
+    if (typeof aviso === 'string') {
+      this.aviso.set(aviso);
+    }
     this.cargarPerfilYHistorial();
+  }
+
+  solicitarCambioEstado(): void {
+    this.actionError.set(null);
+    this.confirmandoEstado.set(true);
+  }
+
+  cancelarCambioEstado(): void {
+    if (!this.isTogglingEstado()) {
+      this.confirmandoEstado.set(false);
+    }
+  }
+
+  confirmarCambioEstado(): void {
+    const actual = this.usuario();
+    if (!actual) return;
+    const nuevoEstado = !this.estaActivo();
+
+    this.isTogglingEstado.set(true);
+    this.usuariosService
+      .cambiarEstado(actual.id, nuevoEstado)
+      .pipe(finalize(() => this.isTogglingEstado.set(false)))
+      .subscribe({
+        next: (actualizado) => {
+          this.usuario.set({ ...actual, ...actualizado });
+          this.confirmandoEstado.set(false);
+          this.aviso.set(
+            nuevoEstado
+              ? 'La cuenta fue reactivada: el usuario ya puede iniciar sesión.'
+              : 'La cuenta fue desactivada: el usuario ya no puede iniciar sesión.',
+          );
+        },
+        error: (cause: unknown) => {
+          this.confirmandoEstado.set(false);
+          this.actionError.set(
+            isApiError(cause)
+              ? cause
+              : {
+                  statusCode: 500,
+                  tipoError: 'UnexpectedError',
+                  message: 'No fue posible cambiar el estado de la cuenta.',
+                },
+          );
+        },
+      });
   }
 
   cargarPerfilYHistorial(): void {

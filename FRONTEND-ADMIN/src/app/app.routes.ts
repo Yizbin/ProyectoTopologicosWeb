@@ -105,6 +105,14 @@ export const routes: Routes = [
           ).then((m) => m.UsuarioFormPageComponent),
       },
       {
+        path: 'usuarios/:id/editar',
+        canDeactivate: [unsavedChangesGuard],
+        loadComponent: () =>
+          import(
+            './features/usuarios/pages/usuario-form-page/usuario-form-page.component'
+          ).then((m) => m.UsuarioFormPageComponent),
+      },
+      {
         path: 'usuarios/:id',
         loadComponent: () =>
           import(

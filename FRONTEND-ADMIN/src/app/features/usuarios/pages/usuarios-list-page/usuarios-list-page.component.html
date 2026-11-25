@@ -25,7 +25,7 @@
     (ngSubmit)="aplicarFiltros()"
     class="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
   >
-    <div class="grid gap-4 sm:grid-cols-3">
+    <div class="grid gap-4 sm:grid-cols-4">
       <div class="sm:col-span-2">
         <label for="usr-busqueda" class="block text-xs font-semibold uppercase tracking-wide text-stone-600">
           Buscar
@@ -53,6 +53,21 @@
           <option value="ADMIN">Admin</option>
         </select>
       </div>
+
+      <div>
+        <label for="usr-estado" class="block text-xs font-semibold uppercase tracking-wide text-stone-600">
+          Estado
+        </label>
+        <select
+          id="usr-estado"
+          formControlName="estado"
+          class="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#23312b] focus:outline-none focus:ring-2 focus:ring-[#23312b]/20"
+        >
+          <option value="">Todos</option>
+          <option value="activos">Activos</option>
+          <option value="inactivos">Desactivados</option>
+        </select>
+      </div>
     </div>
 
     <div class="mt-4 flex flex-wrap items-center justify-end gap-2">
@@ -74,6 +89,17 @@
     </div>
   </form>
 
+  @if (actionSuccess(); as successMsg) {
+    <div role="status"
+      class="flex items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+      <span>{{ successMsg }}</span>
+      <button type="button" aria-label="Cerrar aviso" (click)="actionSuccess.set(null)"
+        class="text-emerald-700 hover:text-emerald-950">×</button>
+    </div>
+  }
+
+  <app-domain-error-alert [error]="actionError()" [dismissible]="true" (dismissed)="actionError.set(null)" />
+
   <app-async-state
     [isLoading]="isLoading()"
     [error]="error()"
@@ -93,14 +119,17 @@
                 <th scope="col" class="px-4 py-3.5">Correo electrónico</th>
                 <th scope="col" class="px-4 py-3.5">Teléfono</th>
                 <th scope="col" class="px-4 py-3.5">Rol</th>
+                <th scope="col" class="px-4 py-3.5">Estado</th>
                 <th scope="col" class="px-4 py-3.5 text-right">Acciones</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-stone-100">
               @for (usr of res.items; track usr.id) {
-                <tr class="transition-colors hover:bg-stone-50/70">
+                <tr class="transition-colors hover:bg-stone-50/70" [class.opacity-70]="!estaActivo(usr)">
                   <td class="px-4 py-3.5 font-semibold text-stone-900">
-                    {{ usr.nombre }}
+                    <a [routerLink]="['/usuarios', usr.id]" class="hover:text-[#526e5c] hover:underline">
+                      {{ usr.nombre }}
+                    </a>
                   </td>
                   <td class="px-4 py-3.5 text-stone-700">
                     {{ usr.correo }}
@@ -111,13 +140,36 @@
                   <td class="whitespace-nowrap px-4 py-3.5">
                     <app-status-badge [value]="usr.rol" />
                   </td>
+                  <td class="whitespace-nowrap px-4 py-3.5">
+                    <app-status-badge [value]="estaActivo(usr)" />
+                  </td>
                   <td class="whitespace-nowrap px-4 py-3.5 text-right">
-                    <a
-                      [routerLink]="['/usuarios', usr.id]"
-                      class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
-                    >
-                      Ver historial y detalle
-                    </a>
+                    <div class="inline-flex flex-wrap items-center justify-end gap-1.5">
+                      <a
+                        [routerLink]="['/usuarios', usr.id]"
+                        class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-stone-700 hover:bg-stone-50"
+                      >
+                        Ver detalle
+                      </a>
+                      <a
+                        [routerLink]="['/usuarios', usr.id, 'editar']"
+                        class="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-xs font-semibold text-[#23312b] hover:bg-stone-50"
+                      >
+                        Editar
+                      </a>
+                      @if (usr.id !== usuarioActualId()) {
+                        <button
+                          type="button"
+                          (click)="solicitarCambioEstado(usr)"
+                          class="rounded-md border px-3 py-1.5 text-xs font-semibold transition"
+                          [class]="estaActivo(usr)
+                            ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100'
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'"
+                        >
+                          {{ estaActivo(usr) ? 'Desactivar' : 'Reactivar' }}
+                        </button>
+                      }
+                    </div>
                   </td>
                 </tr>
               }
@@ -135,4 +187,17 @@
       </div>
     }
   </app-async-state>
+
+  @if (usuarioAConfirmar(); as target) {
+    <app-confirm-modal [isOpen]="true"
+      [title]="estaActivo(target) ? 'Desactivar cuenta' : 'Reactivar cuenta'"
+      [message]="estaActivo(target)
+        ? 'La persona ya no podrá iniciar sesión ni en el portal ni en el panel, y su sesión abierta se cerrará en su siguiente acción. Sus reservaciones e historial se conservan.'
+        : 'La persona podrá volver a iniciar sesión con su contraseña actual.'"
+      [detail]="target.nombre + ' · ' + target.correo"
+      [confirmLabel]="estaActivo(target) ? 'Sí, desactivar' : 'Sí, reactivar'"
+      cancelLabel="Cancelar" [variant]="estaActivo(target) ? 'danger' : 'primary'"
+      [isLoading]="isTogglingEstado()"
+      (confirmed)="confirmarCambioEstado()" (cancelled)="cancelarCambioEstado()" />
+  }
 </div>
