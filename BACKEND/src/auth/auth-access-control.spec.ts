@@ -59,9 +59,17 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
     completarPago: () => Promise.resolve({ id: 'pago-1' }),
   };
 
+  // La estrategia JWT revalida cada sesión contra la BD; aquí cada token de prueba
+  // declara en su `sub` el rol que la "BD" debe confirmar.
+  const rolesSesion = new Map<string, RolUsuario>();
+
   const mockUsuariosService = {
+    obtenerEstadoSesion: (id: string) =>
+      Promise.resolve({ activo: true, rol: rolesSesion.get(id) ?? RolUsuario.CLIENTE }),
     crearUsuario: () => Promise.resolve({ id: 'u1', nombre: 'Nuevo', correo: 'n@t.com', telefono: '555', contrasena: 'hash', rol: RolUsuario.CLIENTE }),
     listarUsuarios: () => Promise.resolve([{ id: 'u1', nombre: 'Ana', correo: 'ana@test.com', telefono: '555', rol: RolUsuario.CLIENTE }]),
+    actualizarUsuario: (id: string) => Promise.resolve({ id, nombre: 'Editado', correo: 'ana@test.com', telefono: '555', contrasena: 'hash', rol: RolUsuario.CLIENTE, activo: true }),
+    cambiarEstado: (id: string, activo: boolean) => Promise.resolve({ id, nombre: 'Ana', correo: 'ana@test.com', telefono: '555', contrasena: 'hash', rol: RolUsuario.CLIENTE, activo }),
     buscarPorId: (id: string) => Promise.resolve({ id, nombre: 'Ana', correo: 'ana@test.com', telefono: '555', contrasena: 'hash', rol: RolUsuario.CLIENTE }),
   };
 
@@ -115,8 +123,10 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
   });
 
   const generarToken = (rol: RolUsuario) => {
+    const sub = rol === RolUsuario.ADMIN ? 'admin-test-id' : 'usuario-test-id';
+    rolesSesion.set(sub, rol);
     return jwtService.sign({
-      sub: 'usuario-test-id',
+      sub,
       correo: 'test@example.com',
       rol,
       nombre: 'Usuario Test',
@@ -393,6 +403,33 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
       expect((await llamar()).status).toBe(401);
       expect((await llamar(generarToken(RolUsuario.CLIENTE))).status).toBe(403);
       expect((await llamar(generarToken(RolUsuario.ADMIN))).status).toBe(200);
+    });
+
+    it('PATCH /usuarios/:id y /usuarios/:id/estado son exclusivos de ADMIN y nunca devuelven contraseña', async () => {
+      const tokenCliente = generarToken(RolUsuario.CLIENTE);
+      const tokenAdmin = generarToken(RolUsuario.ADMIN);
+
+      expect((await request(app.getHttpServer()).patch('/usuarios/u1').set('Authorization', `Bearer ${tokenCliente}`).send({ nombre: 'X' })).status).toBe(403);
+      expect((await request(app.getHttpServer()).patch('/usuarios/u1/estado').set('Authorization', `Bearer ${tokenCliente}`).send({ activo: false })).status).toBe(403);
+
+      const editado = await request(app.getHttpServer()).patch('/usuarios/u1').set('Authorization', `Bearer ${tokenAdmin}`).send({ nombre: 'Editado' });
+      expect(editado.status).toBe(200);
+      expect(editado.body.contrasena).toBeUndefined();
+
+      const invalido = await request(app.getHttpServer()).patch('/usuarios/u1/estado').set('Authorization', `Bearer ${tokenAdmin}`).send({ activo: 'quizá' });
+      expect(invalido.status).toBe(400);
+    });
+
+    it('rechaza con 401 la credencial de una cuenta que fue desactivada', async () => {
+      const tokenCliente = generarToken(RolUsuario.CLIENTE);
+      const original = mockUsuariosService.obtenerEstadoSesion;
+      mockUsuariosService.obtenerEstadoSesion = () => Promise.resolve({ activo: false, rol: RolUsuario.CLIENTE });
+      try {
+        const res = await request(app.getHttpServer()).get('/usuarios/usuario-test-id').set('Authorization', `Bearer ${tokenCliente}`);
+        expect(res.status).toBe(401);
+      } finally {
+        mockUsuariosService.obtenerEstadoSesion = original;
+      }
     });
 
     it('GET /usuarios/:id permite ADMIN para cualquiera y CLIENTE solo sobre sí mismo', async () => {

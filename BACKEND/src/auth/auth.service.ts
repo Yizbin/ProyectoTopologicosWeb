@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import bcrypt from 'bcrypt';
 import { UsuariosService } from '../usuarios/usuarios.service.js';
@@ -26,6 +26,12 @@ export class AuthService {
     const contrasenaValida = await bcrypt.compare(contrasena, usuario.contrasena);
     if (!contrasenaValida) {
       throw new UnauthorizedException('Credenciales inválidas: correo o contraseña incorrectos.');
+    }
+
+    if (usuario.activo === false) {
+      throw new ForbiddenException(
+        'Tu cuenta está desactivada. Comunícate con la administración para reactivarla.',
+      );
     }
 
     return usuario;
