@@ -209,7 +209,9 @@ export class ReservacionFormPageComponent
     })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: ({ usuarios, espacios }) => {
+        next: ({ usuarios: todos, espacios }) => {
+          // Las cuentas desactivadas no pueden recibir reservaciones nuevas.
+          const usuarios = todos.filter((u) => u.activo !== false);
           this.usuarios.set(usuarios);
           this.espacios.set(espacios);
 
