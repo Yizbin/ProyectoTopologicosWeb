@@ -2,6 +2,7 @@ import {
   Controller,
   Post,
   Get,
+  Patch,
   Body,
   Param,
   Query,
@@ -12,6 +13,8 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { UsuariosService } from './usuarios.service.js';
 import { CrearUsuarioDto } from './dto/crear-usuario.dto.js';
 import { ListarUsuariosQueryDto } from './dto/listar-usuarios-query.dto.js';
+import { ActualizarUsuarioDto } from './dto/actualizar-usuario.dto.js';
+import { CambiarEstadoUsuarioDto } from './dto/cambiar-estado-usuario.dto.js';
 import { paginarLista, type ResultadoPaginado } from '../common/utils/paginacion.util.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../auth/guards/roles.guard.js';
@@ -50,6 +53,7 @@ export class UsuariosController {
   ): Promise<UsuarioPublico[] | ResultadoPaginado<UsuarioPublico>> {
     const lista = await this.usuariosService.listarUsuarios({
       rol: query.rol,
+      activo: query.activo,
       busqueda: query.busqueda ?? query.q,
     });
 
@@ -72,5 +76,31 @@ export class UsuariosController {
     }
     const usuario = await this.usuariosService.buscarPorId(id);
     return sinContrasena(usuario);
+  }
+
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  @ApiOperation({ summary: 'Editar datos, rol o contraseña de un usuario (Solo ADMIN)' })
+  async actualizarUsuario(
+    @Param('id') id: string,
+    @Body() dto: ActualizarUsuarioDto,
+    @CurrentUser() user: { id: string },
+  ): Promise<UsuarioPublico> {
+    const actualizado = await this.usuariosService.actualizarUsuario(id, dto, user.id);
+    return sinContrasena(actualizado);
+  }
+
+  @Patch(':id/estado')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RolUsuario.ADMIN)
+  @ApiOperation({ summary: 'Activar o desactivar la cuenta de un usuario (Solo ADMIN)' })
+  async cambiarEstado(
+    @Param('id') id: string,
+    @Body() dto: CambiarEstadoUsuarioDto,
+    @CurrentUser() user: { id: string },
+  ): Promise<UsuarioPublico> {
+    const actualizado = await this.usuariosService.cambiarEstado(id, dto.activo, user.id);
+    return sinContrasena(actualizado);
   }
 }
