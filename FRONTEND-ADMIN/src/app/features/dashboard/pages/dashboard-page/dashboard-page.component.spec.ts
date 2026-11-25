@@ -7,6 +7,8 @@ import { DashboardPageComponent } from './dashboard-page.component';
 
 describe('DashboardPageComponent', () => {
   const mockResumen: DashboardResumen = {
+    periodo: { fechaInicio: '2026-11-01', fechaFin: '2026-11-24' },
+    ocupacion: { minutosDisponibles: 1200, minutosOcupados: 600, porcentaje: 50 },
     espacios: { total: 4, activos: 3, inactivos: 1 },
     reservaciones: {
       total: 10,

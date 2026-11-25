@@ -14,7 +14,7 @@
     </div>
   </div>
 
-  <app-async-state [isLoading]="isLoading()" [error]="loadError()" [isEmpty]="false"
+  <app-async-state backLink="/espacios" backLabel="Volver al listado" [isLoading]="isLoading()" [error]="loadError()" [isEmpty]="false"
     loadingMessage="Cargando formulario del espacio…" (retry)="cargarDatosIniciales()">
     <div class="rounded-2xl border border-stone-200 bg-white p-6 shadow-xs sm:p-8">
       <div class="mb-5">

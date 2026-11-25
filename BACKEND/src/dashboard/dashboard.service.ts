@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { formatoFecha, hoy, sumarDias } from '../common/utils/fecha.util.js';
+import { formatoFecha, hoy, parseFecha, sumarDias } from '../common/utils/fecha.util.js';
+import { calcularOcupacion } from './ocupacion.util.js';
+import type { ResumenQueryDto } from './dto/resumen-query.dto.js';
 import { TipoEspacio } from '../dominio/entidades/espacio.entity.js';
 import { EstadoReservacion } from '../dominio/entidades/reservacion.entity.js';
 
@@ -32,6 +34,8 @@ export interface ReservacionRecienteResumen {
 }
 
 export interface DashboardResumen {
+  periodo: { fechaInicio: string; fechaFin: string };
+  ocupacion: { minutosDisponibles: number; minutosOcupados: number; porcentaje: number };
   espacios: {
     total: number;
     activos: number;
@@ -65,12 +69,26 @@ export interface DashboardResumen {
 export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async obtenerResumen(): Promise<DashboardResumen> {
+  async obtenerResumen(filtros: ResumenQueryDto = {}): Promise<DashboardResumen> {
+    if (Boolean(filtros.fechaInicio) !== Boolean(filtros.fechaFin)) {
+      throw new BadRequestException('Indica fechaInicio y fechaFin para consultar un período.');
+    }
+    const desde = filtros.fechaInicio ? parseFecha(filtros.fechaInicio) : hoy();
+    const hasta = filtros.fechaFin ? parseFecha(filtros.fechaFin) : sumarDias(desde, 6);
+    if (hasta < desde || hasta.getTime() - desde.getTime() > 365 * 86400000) {
+      throw new BadRequestException('El período debe estar ordenado y no superar 366 días.');
+    }
+    const rango = { gte: desde, lt: sumarDias(hasta, 1) };
     const [espacios, reservaciones, pagos, usuarios] = await Promise.all([
       this.prisma.espacio.findMany({
-        select: { id: true, nombre: true, tipo: true, activo: true },
+        select: {
+          id: true, nombre: true, tipo: true, activo: true,
+          horarios: true, bloqueos: { where: { activo: true } },
+          sede: { select: { horaAperturaGeneral: true, horaCierreGeneral: true } },
+        },
       }),
       this.prisma.reservacion.findMany({
+        ...(filtros.fechaInicio ? { where: { fecha: rango } } : {}),
         include: {
           espacio: { select: { id: true, nombre: true, tipo: true } },
           usuario: { select: { id: true, nombre: true, correo: true } },
@@ -79,6 +97,7 @@ export class DashboardService {
         orderBy: [{ fecha: 'desc' }, { horaInicio: 'desc' }],
       }),
       this.prisma.pago.findMany({
+        ...(filtros.fechaInicio ? { where: { reservacion: { is: { fecha: rango } } } } : {}),
         select: { id: true, montoTotal: true, estado: true },
       }),
       this.prisma.usuario.findMany({
@@ -146,11 +165,6 @@ export class DashboardService {
         actual.totalReservaciones += 1;
         if (r.pago?.estado === 'COMPLETADO') {
           actual.ingresosGenerados += r.pago.montoTotal;
-        } else if (
-          estado === EstadoReservacion.CONFIRMADA ||
-          estado === EstadoReservacion.COMPLETADA
-        ) {
-          actual.ingresosGenerados += r.subtotal;
         }
         mapaTop.set(r.espacio.id, actual);
       }
@@ -196,6 +210,8 @@ export class DashboardService {
       }));
 
     return {
+      periodo: { fechaInicio: formatoFecha(desde), fechaFin: formatoFecha(hasta) },
+      ocupacion: calcularOcupacion(espacios, reservaciones, desde, hasta),
       espacios: {
         total: espacios.length,
         activos: espaciosActivos,

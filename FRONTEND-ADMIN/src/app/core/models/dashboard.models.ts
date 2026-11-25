@@ -28,6 +28,8 @@ export interface ReservacionRecienteResumen {
 }
 
 export interface DashboardResumen {
+  periodo: { fechaInicio: string; fechaFin: string };
+  ocupacion: { minutosDisponibles: number; minutosOcupados: number; porcentaje: number };
   espacios: {
     total: number;
     activos: number;

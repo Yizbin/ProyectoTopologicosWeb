@@ -16,6 +16,8 @@
     <div class="h-10 w-4/5 rounded-xl bg-stone-200/40"></div>
   </div>
 </section>
+} @else if (error()?.statusCode === 404) {
+<app-not-found [backLink]="backLink()" [backLabel]="backLabel()" />
 } @else if (error(); as currentError) {
 <div class="space-y-3">
   <app-domain-error-alert [error]="currentError" />

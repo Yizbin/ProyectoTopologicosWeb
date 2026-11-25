@@ -64,7 +64,7 @@ export class AuthService {
       return null;
     }
     if (!this.isTokenValid(current)) {
-      this.clearSession();
+      this.logout('Tu sesión ha expirado. Inicia sesión nuevamente.');
       return null;
     }
     return current;

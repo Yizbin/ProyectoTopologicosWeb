@@ -1,5 +1,8 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Subscription } from 'rxjs';
+import { OnDestroy } from '@angular/core';
 import { finalize } from 'rxjs';
 import { isApiError, type ApiError, type DashboardResumen } from '../../../../core/models';
 import {
@@ -22,11 +25,24 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('es-MX', {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [RouterLink, AsyncStateComponent, StatusBadgeComponent],
+  imports: [RouterLink, ReactiveFormsModule, AsyncStateComponent, StatusBadgeComponent],
   templateUrl: './dashboard-page.component.html',
 })
-export class DashboardPageComponent implements OnInit {
+export class DashboardPageComponent implements OnInit, OnDestroy {
   private readonly dashboardService = inject(DashboardService);
+  private readonly fb = inject(FormBuilder);
+  private request?: Subscription;
+  private readonly hoy = new Date();
+  private fechaLocal(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+  readonly periodoForm = this.fb.nonNullable.group({
+    fechaInicio: [this.fechaLocal(new Date(this.hoy.getFullYear(), this.hoy.getMonth(), 1)), Validators.required],
+    fechaFin: [this.fechaLocal(this.hoy), Validators.required],
+  });
+  readonly periodoError = signal<string | null>(null);
+
+  ngOnDestroy(): void { this.request?.unsubscribe(); }
 
   readonly resumen = signal<DashboardResumen | null>(null);
   readonly isLoading = signal(true);
@@ -37,11 +53,20 @@ export class DashboardPageComponent implements OnInit {
   }
 
   cargarResumen(): void {
+    const periodo = this.periodoForm.getRawValue();
+    const dias = (Date.parse(periodo.fechaFin) - Date.parse(periodo.fechaInicio)) / 86400000;
+    if (this.periodoForm.invalid || !Number.isFinite(dias) || dias < 0 || dias > 365) {
+      this.periodoForm.markAllAsTouched();
+      this.periodoError.set('Indica un período válido de hasta 366 días, con fin posterior o igual al inicio.');
+      return;
+    }
+    this.periodoError.set(null);
+    this.request?.unsubscribe();
     this.isLoading.set(true);
     this.error.set(null);
 
-    this.dashboardService
-      .obtenerResumen()
+    this.request = this.dashboardService
+      .obtenerResumen(periodo)
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
         next: (data) => {

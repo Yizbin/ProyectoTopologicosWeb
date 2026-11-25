@@ -90,7 +90,7 @@ export const apiResponseErrorInterceptor: HttpInterceptorFn = (req, next) => {
         const normalized = normalizeHttpError(cause);
         const isLoginRequest = req.url.includes('/auth/login');
 
-        if ((cause.status === 401 || cause.status === 403) && !isLoginRequest) {
+        if (cause.status === 401 && !isLoginRequest) {
           authService.logout(
             'Tu sesión ha expirado o ya no es válida. Inicia sesión nuevamente.',
           );

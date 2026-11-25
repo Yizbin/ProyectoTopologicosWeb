@@ -1,4 +1,5 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import { AuthService } from '../../../../core/services/auth.service';
 import {
   AbstractControl,
   FormArray,
@@ -149,6 +150,19 @@ export class EspacioDetailPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly espaciosService = inject(EspaciosAdminService);
+  private readonly authService = inject(AuthService);
+
+  hasUnsavedChanges(): boolean {
+    return this.horariosForm.dirty || this.bloqueoForm.dirty;
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  onBeforeUnload(event: BeforeUnloadEvent): void {
+    if (this.authService.isAuthenticated() && this.hasUnsavedChanges()) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  }
 
   readonly espacioId = signal('');
   readonly activeTab = signal<DetailTab>('info');
@@ -339,6 +353,7 @@ export class EspacioDetailPageComponent implements OnInit {
       .subscribe({
         next: (updated) => {
           this.poblarHorarios(updated);
+          this.horariosForm.markAsPristine();
           this.horariosSuccess.set(
             'Horarios de atención actualizados correctamente.',
           );
@@ -499,5 +514,6 @@ export class EspacioDetailPageComponent implements OnInit {
       ctrl.markAsUntouched();
       ctrl.updateValueAndValidity();
     }
+    this.horariosForm.markAsPristine();
   }
 }

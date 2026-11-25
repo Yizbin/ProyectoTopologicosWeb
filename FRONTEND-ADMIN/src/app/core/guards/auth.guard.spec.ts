@@ -90,27 +90,43 @@ describe('Core Functional Guards', () => {
   });
 
   it('unsavedChangesGuard solicita confirmación solo si hay cambios pendientes', () => {
+    TestBed.configureTestingModule({ providers: [
+      { provide: AuthService, useValue: { isAuthenticated: () => true } },
+    ] });
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     const dummyState = { url: '/espacios' } as RouterStateSnapshot;
 
-    const cleanResult = unsavedChangesGuard(
+    const cleanResult = TestBed.runInInjectionContext(() => unsavedChangesGuard(
       { hasUnsavedChanges: () => false },
       route,
       dummyState,
       dummyState,
-    );
+    ));
     expect(cleanResult).toBe(true);
     expect(confirmSpy).not.toHaveBeenCalled();
 
-    const dirtyResult = unsavedChangesGuard(
+    const dirtyResult = TestBed.runInInjectionContext(() => unsavedChangesGuard(
       { hasUnsavedChanges: () => true },
       route,
       dummyState,
       dummyState,
-    );
+    ));
     expect(dirtyResult).toBe(false);
     expect(confirmSpy).toHaveBeenCalledOnce();
 
     confirmSpy.mockRestore();
+  });
+
+  it('permite abandonar un formulario sucio cuando ya se cerró la sesión', () => {
+    TestBed.configureTestingModule({ providers: [
+      { provide: AuthService, useValue: { isAuthenticated: () => false } },
+    ] });
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    const state = { url: '/login' } as RouterStateSnapshot;
+    expect(TestBed.runInInjectionContext(() => unsavedChangesGuard(
+      { hasUnsavedChanges: () => true }, route, state, state,
+    ))).toBe(true);
+    expect(confirm).not.toHaveBeenCalled();
+    confirm.mockRestore();
   });
 });

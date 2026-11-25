@@ -120,7 +120,7 @@ describe('DashboardService', () => {
         nombre: 'Cubículo 1',
         tipo: TipoEspacio.CUBICULO,
         totalReservaciones: 1,
-        ingresosGenerados: 200,
+        ingresosGenerados: 0,
       },
     ]);
 
@@ -132,5 +132,19 @@ describe('DashboardService', () => {
       espacio: { id: 'e1', nombre: 'Sala Magna', tipo: TipoEspacio.SALA },
       cliente: { id: 'u1', nombre: 'Ana', correo: 'ana@test.com' },
     });
+  });
+
+  it('rechaza rangos incompletos, invertidos o demasiado extensos antes de consultar', async () => {
+    await expect(service.obtenerResumen({ fechaInicio: '2030-01-01' })).rejects.toThrow('fechaInicio y fechaFin');
+    await expect(service.obtenerResumen({ fechaInicio: '2030-01-02', fechaFin: '2030-01-01' })).rejects.toThrow('período');
+    await expect(service.obtenerResumen({ fechaInicio: '2030-01-01', fechaFin: '2032-01-01' })).rejects.toThrow('período');
+    expect(mockPrisma.reservacion.findMany).not.toHaveBeenCalled();
+  });
+
+  it('aplica el mismo período a reservas y pagos vinculados', async () => {
+    await service.obtenerResumen({ fechaInicio: '2030-01-01', fechaFin: '2030-01-31' });
+    const rango = { gte: new Date('2030-01-01'), lt: new Date('2030-02-01') };
+    expect(mockPrisma.reservacion.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { fecha: rango } }));
+    expect(mockPrisma.pago.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { reservacion: { is: { fecha: rango } } } }));
   });
 });

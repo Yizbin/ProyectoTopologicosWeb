@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../../environments/environment';
@@ -9,9 +9,10 @@ export class DashboardService {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = environment.apiBaseUrl.replace(/\/$/, '');
 
-  obtenerResumen(): Observable<DashboardResumen> {
+  obtenerResumen(periodo?: { fechaInicio: string; fechaFin: string }): Observable<DashboardResumen> {
     return this.http.get<DashboardResumen>(
       `${this.apiBaseUrl}/dashboard/resumen`,
+      { params: periodo ? new HttpParams({ fromObject: periodo }) : new HttpParams() },
     );
   }
 }

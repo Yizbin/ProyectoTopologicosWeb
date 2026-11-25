@@ -6,7 +6,7 @@
     </a>
   </div>
 
-  <app-async-state [isLoading]="isLoading()" [error]="loadError()" [isEmpty]="!espacio()"
+  <app-async-state backLink="/espacios" backLabel="Volver al listado" [isLoading]="isLoading()" [error]="loadError()" [isEmpty]="!espacio()"
     loadingMessage="Cargando detalle, horarios y bloqueos…" emptyTitle="Espacio no encontrado"
     emptyMessage="No encontramos el espacio solicitado o fue eliminado." (retry)="cargarTodo()">
     <div emptyAction>
@@ -310,7 +310,7 @@
           </div>
 
           <div class="mt-4">
-            <app-async-state [isLoading]="isLoadingBloqueos()" [error]="bloqueosLoadError()"
+            <app-async-state backLink="/espacios" backLabel="Volver al listado" [isLoading]="isLoadingBloqueos()" [error]="bloqueosLoadError()"
               [isEmpty]="bloqueos().length === 0" loadingMessage="Cargando bloqueos…"
               emptyTitle="Sin bloqueos registrados" [emptyMessage]="
                     soloActivos()

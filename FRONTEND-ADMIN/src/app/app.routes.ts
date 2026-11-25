@@ -15,6 +15,7 @@ export const routes: Routes = [
     path: '',
     component: AdminLayoutComponent,
     canActivate: [authGuard],
+    canActivateChild: [authGuard],
     children: [
       {
         path: '',
@@ -53,6 +54,7 @@ export const routes: Routes = [
       },
       {
         path: 'espacios/:id',
+        canDeactivate: [unsavedChangesGuard],
         loadComponent: () =>
           import(
             './features/espacios/pages/espacio-detail-page/espacio-detail-page.component'
@@ -108,6 +110,10 @@ export const routes: Routes = [
           import(
             './features/usuarios/pages/usuario-detail-page/usuario-detail-page.component'
           ).then((m) => m.UsuarioDetailPageComponent),
+      },
+      {
+        path: '**',
+        loadComponent: () => import('./shared/components/not-found/not-found.component').then(m => m.NotFoundComponent),
       },
     ],
   },
