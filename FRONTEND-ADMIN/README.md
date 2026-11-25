@@ -1,59 +1,53 @@
-# FrontendAdmin
+# Casa Norte — Panel Administrativo (`FRONTEND-ADMIN`)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.5.
+Aplicación web independiente para la operación interna del **Sistema de Reservas y Agenda "Casa Norte"**, construida con Angular 22
 
-## Development server
+Este panel atiende únicamente al personal administrativo 
 
-To start a local development server, run:
 
-```bash
-ng serve
-```
+## Prerrequisitos
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+- **Node.js**
+- **Angular CLI**
+- Servicio BACKEND en ejecucion
 
-## Code scaffolding
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
 
-```bash
-ng generate component component-name
-```
+## Configuración de la URL del Servicio y CORS
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+Si el backend corre en otro host o puerto (que no sea `http://localhost:3000`), edita únicamente `apiBaseUrl` en estos archivos:
+- src/environments/environment.development.ts
+- src/environments/environment.ts
 
-```bash
-ng generate --help
-```
+Y asegurate de que `BACKEND/.env` incluya los origenes en `ALLOWED_ORIGINS`:
+- ALLOWED_ORIGINS="http://localhost:5173,http://localhost:4200"
 
-## Building
 
-To build the project run:
 
-```bash
-ng build
-```
 
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
+## Instalación, Ejecución, Compilación y Pruebas
 
-## Running unit tests
+Desde `FRONTEND-ADMIN/`:
 
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+1. **Instalar dependencias:**
+- npm install
 
-```bash
-ng test
-```
+2. **Levantar servidor de desarrollo (`http://localhost:4200`):**
+- npm start
 
-## Running end-to-end tests
+3. **Compilar para producción (genera `dist/`):**
+- npm run build
 
-For end-to-end (e2e) testing, run:
+4. **Ejecutar pruebas unitarias en modo CI (Vitest):**
+- npx ng test --watch=false
 
-```bash
-ng e2e
-```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
 
-## Additional Resources
+## Cuentas de Prueba (Seeder)
+- ROL - CORREO - CONTRASEÑA - COMPORTAMIENTO LOGIN
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- ADMIN - admin@sistema.local - Admin123* - Acceso completo al panel administrativo
+- ADMIN - admin@seeder.com - Admin123* - Acceso completo al panel administrativo
+- CLIENTE - cliente@sistema.local - Cliente123* - Rechazado en `/login` con aviso de rol `ADMIN` requerido
+
+

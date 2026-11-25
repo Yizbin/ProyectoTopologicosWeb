@@ -1,94 +1,103 @@
-# Sistema de Reservas y Agenda — Frontend / Backend
+# Casa Norte — Sistema de Reservas y Agenda
 
-Sistema web para consulta de espacios, verificación de disponibilidad en tiempo real y gestión de reservaciones, dividido en dos aplicaciones independientes dentro del mismo repositorio:
+Plataforma web integral para consulta de espacios, disponibilidad en tiempo real, reservaciones, pagos y operación administrativa, estructurada como un **monorepo con tres aplicaciones independientes**:
 
-- **`BACKEND/`**: API REST en **NestJS** con arquitectura limpia (Clean Architecture), reglas de dominio encapsuladas, autenticación JWT con control de acceso por roles (`CLIENTE` / `ADMIN`), documentación Swagger y persistencia en **MySQL** vía **Prisma ORM**.
+- **`BACKEND/`** — API REST en **NestJS + Prisma 7 + MySQL** 
 
-- **`FRONTEND/`**: Portal público del cliente (**Storefront**) en **React 19 + Vite + TypeScript + Tailwind CSS**, organizado por características (`auth`, `catalog`, `booking`) y conectado a la API mediante Axios e interceptores centralizados. *Este portal es exclusivamente para clientes finales y no contiene panel ni acciones de administración.*
+- **`FRONTEND/`** — Portal Público del Cliente  en **React 19 + Vite + TypeScript + Tailwind CSS** 
 
----
-
-## Guía de Arranque Rápido (5 Pasos)
-
-### Paso 1. Instalar dependencias en ambas aplicaciones
-
-Desde la raíz del monorepo, instala los paquetes de `BACKEND/` y `FRONTEND/`:
-
-
-cd BACKEND
-npm install
-
-
-cd ..\FRONTEND
-npm install
+- **`FRONTEND-ADMIN/`** — Panel Administrativo  en **Angular 22** (puerto `4200`), exclusivo para operadores `ADMIN`
 
 
 
-### Paso 2. Configurar variables de entorno
+## Guía de Arranque Completo desde Cero (3 Aplicaciones)
 
-1. En `BACKEND/`, crea el archivo `BACKEND/.env` tomando como base `BACKEND/.env.example`:
+### Paso 1. Instalar dependencias en los 3 proyectos
 
-   DATABASE_URL="mysql://usuario:password@localhost:3306/sistema_reservas"
-   JWT_SECRET="super_secreto_jwt_para_sistema_reservas_2026"
-   ALLOWED_ORIGINS="http://localhost:5173"
+Desde la raiz:
 
+- cd BACKEND
+- npm install
 
-2. En `FRONTEND/`, copia `FRONTEND/.env.example` hacia `FRONTEND/.env`:
+- cd ../FRONTEND
+- npm install
 
-   Verifica que `FRONTEND/.env` contenga `VITE_API_BASE_URL="http://localhost:3000"`.
-
-### Paso 3. Ejecutar migraciones y poblar datos de semilla (Seeder)
-
-Con MySQL encendido y la base de datos creada, ejecuta las migraciones y la semilla desde `BACKEND/`:
+- cd ../FRONTEND-ADMIN
+- npm install
 
 
-cd BACKEND
-npx prisma migrate dev
-npx prisma db seed (O tambien: npm run seed)
+### Paso 2. Configurar variables de entorno y URLs de servicio
+
+1. **`BACKEND/.env`** — Crea .env a partir de .env.example asegurando ambos orígenes en `ALLOWED_ORIGINS`:
+
+   - DATABASE_URL="mysql://usuario:password@localhost:3306/sistema_reservas"
+   - JWT_SECRET="super_secreto_jwt_para_sistema_reservas_2026"
+   - ALLOWED_ORIGINS="http://localhost:5173,http://localhost:4200"
+
+2. **`FRONTEND/.env`** — Crea .env a partir de .env.example y verifica que apunte al backend:
+
+  -  VITE_API_BASE_URL="http://localhost:3000"
+
+3. **`FRONTEND-ADMIN/`** — Ya viene preconfigurado apuntando a `http://localhost:3000` en 
+- FRONTEND-ADMIN/src/environments/environment.development.ts 
+- FRONTEND-ADMIN/src/environments/environment.ts
+
+### Paso 3. Ejecutar migraciones de Prisma y poblar el seeder
+
+- cd BACKEND
+- npx prisma migrate dev
+- npx prisma db seed
 
 
-### Paso 4. Levantar los servidores
+### Paso 4. Levantar los 3 servidores simultáneamente (3 terminales)
 
-- **Terminal 1 — API Backend (`http://localhost:3000`)**:
-
-  cd BACKEND
-  npm run start:dev
+- **Terminal 1 — API Backend (`http://localhost:3000`):**
+  - cd BACKEND
+  - npm run start:dev
   
 
-- **Terminal 2 — Portal del Cliente (`http://localhost:5173`)**:
+- **Terminal 2 — Portal Público del Cliente (`http://localhost:5173`):**
+  - cd FRONTEND
+  - npm run dev
 
-  cd FRONTEND
-  npm run dev
+
+- **Terminal 3 — Panel Administrativo (`http://localhost:4200`):**
+  - cd FRONTEND-ADMIN
+  - npm start
 
 
-### Paso 5. Verificar el funcionamiento
+### Paso 5. Verificar accesos
 
-- **Portal del Cliente (Storefront)**: [http://localhost:5173](http://localhost:5173)
-- **Documentación interactiva Swagger (API)**: [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
-
----
-
-## Cuentas Precargadas 
-
-| Rol | Correo | Contraseña | Uso principal |
-
-| `CLIENTE` | `cliente@sistema.local` | `Cliente123*` | Cuenta para probar reservas |
-| `CLIENTE` | `cliente@seeder.com` | `Cliente123*` | Cuenta cliente secundaria |
-| `ADMIN` | `admin@seeder.com` | `Admin123*` | Exclusiva para pruebas de endpoints administrativos  |
+- **Portal Público del Cliente:** [http://localhost:5173]
+- **Panel Administrativo:** [http://localhost:4200]
+- **Documentación Swagger:** [http://localhost:3000/api/docs]
 
 ---
 
-## Ejecución de pruebas y validaciones
+## Cuentas Precargadas (`BACKEND/prisma/seed.ts`)
 
-Desde `BACKEND/`:
+- ADMIN - admin@sistema.local - Admin123*
+- ADMIN - admin@seeder.com - Admin123*
+- CLIENTE - cliente@sistema.local - Cliente123*
 
-npm test              
-npm run typecheck     
-npm run lint          
-npm run prueba:avance
+## Comandos de Verificación y Pruebas
 
-Desde `FRONTEND/`:
+Desde **`BACKEND/`**:
 
-npm run typecheck    
-npm run build        
+- npm run typecheck
+- npm run lint
+- npm run build
+- npm test
+- npm run prueba:avance
+
+Desde **`FRONTEND/`** :
+
+- npm run typecheck
+- npm run build
+
+
+Desde **`FRONTEND-ADMIN/`**:
+
+- npm run build
+- npx ng test --watch=false
 
