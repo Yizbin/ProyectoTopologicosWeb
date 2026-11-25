@@ -2,9 +2,10 @@ import { Component } from '@angular/core';
 import { provideHttpClient } from '@angular/common/http';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter, Router } from '@angular/router';
+import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { AuthService, ADMIN_TOKEN_KEY, ADMIN_USER_KEY } from '../services/auth.service';
+import { NotFoundComponent } from '../../shared/components/not-found/not-found.component';
 import { authGuard } from './auth.guard';
 import { unsavedChangesGuard } from './unsaved-changes.guard';
 
@@ -14,8 +15,10 @@ class FormularioPrueba {
 }
 @Component({ standalone: true, template: '<p>Inicio de sesión</p>' })
 class LoginPrueba {}
+@Component({ standalone: true, imports: [RouterOutlet], template: '<router-outlet />' })
+class ShellPrueba {}
 
-describe('Salida segura de formularios protegidos', () => {
+describe('Salida segura de formularios protegidos y rutas desconocidas', () => {
   afterEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
 
   it('cerrar sesión navega al login aunque el operador rechazaría descartar cambios', async () => {
@@ -36,5 +39,33 @@ describe('Salida segura de formularios protegidos', () => {
     expect(TestBed.inject(Router).url).toBe('/login');
     expect(harness.routeNativeElement?.textContent).toContain('Inicio de sesión');
     expect(confirm).not.toHaveBeenCalled();
+  });
+
+  it('una ruta inexistente (/no-existe) sin sesión redirige a /login y nunca muestra NotFoundComponent', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        provideRouter([
+          { path: 'login', component: LoginPrueba },
+          {
+            path: '',
+            component: ShellPrueba,
+            canActivate: [authGuard],
+            canActivateChild: [authGuard],
+            children: [
+              { path: '**', component: NotFoundComponent },
+            ],
+          },
+          { path: '**', redirectTo: 'login' },
+        ]),
+      ],
+    });
+
+    const harness = await RouterTestingHarness.create('/no-existe');
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/login?returnUrl=%2Fno-existe');
+    expect(harness.routeNativeElement?.textContent).toContain('Inicio de sesión');
+    expect(harness.routeNativeElement?.textContent).not.toContain('404');
   });
 });

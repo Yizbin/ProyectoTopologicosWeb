@@ -32,6 +32,25 @@ async function main() {
   console.log('Iniciando seeder de la base de datos...');
 
   const passwordAdmin = await bcrypt.hash('Admin123*', 10);
+  const adminLocal = await prisma.usuario.upsert({
+    where: { correo: 'admin@sistema.local' },
+    update: {
+      nombre: 'Administrador Casa Norte',
+      telefono: '555-0109',
+      contrasena: passwordAdmin,
+      rol: 'ADMIN',
+    },
+    create: {
+      id: 'usr-admin-local-seed',
+      nombre: 'Administrador Casa Norte',
+      correo: 'admin@sistema.local',
+      telefono: '555-0109',
+      contrasena: passwordAdmin,
+      rol: 'ADMIN',
+    },
+  });
+  console.log(`Usuario ADMIN principal listo: ${adminLocal.correo} (pass: Admin123*)`);
+
   const admin = await prisma.usuario.upsert({
     where: { correo: 'admin@seeder.com' },
     update: {
@@ -49,7 +68,7 @@ async function main() {
       rol: 'ADMIN',
     },
   });
-  console.log(`Usuario ADMIN listo: ${admin.correo} (pass: Admin123*)`);
+  console.log(`Usuario ADMIN secundario listo: ${admin.correo} (pass: Admin123*)`);
 
   const passwordCliente = await bcrypt.hash('Cliente123*', 10);
   const clienteLocal = await prisma.usuario.upsert({
@@ -234,11 +253,103 @@ async function main() {
     },
   });
 
+  const espaciosAdicionales = [
+    {
+      id: 'espacio-sala-norte-seed',
+      nombre: 'Sala Ejecutiva Norte',
+      descripcion: 'Sala luminosa para talleres ejecutivos y sesiones de consejo.',
+      tipo: 'SALA' as const,
+      costoPorHora: 240,
+      activo: true,
+      duracionMinutos: 60,
+      sedeId: sede.id,
+      capacidadMaxima: 10,
+      amenidades: ['Proyector láser', 'WiFi 6', 'Barra de café'],
+      minimoHorasReserva: 1,
+      maximoHorasReserva: 4,
+    },
+    {
+      id: 'espacio-cubiculo-b2-seed',
+      nombre: 'Cubículo Silencioso B-2',
+      descripcion: 'Cabina privada para entrevistas remotas y enfoque profundo.',
+      tipo: 'CUBICULO' as const,
+      costoPorHora: 75,
+      activo: true,
+      duracionMinutos: 60,
+      sedeId: sede.id,
+      capacidadMaxima: 2,
+      amenidades: ['Aislamiento acústico', 'Luz natural', 'USB-C'],
+      minimoHorasReserva: 1,
+      maximoHorasReserva: 5,
+    },
+    {
+      id: 'espacio-pc-dev-seed',
+      nombre: 'Estación Dev & Arquitectura PC-08',
+      descripcion: 'Estación de trabajo Linux/Windows lista para compilación y diseño CAD.',
+      tipo: 'PC' as const,
+      costoPorHora: 55,
+      activo: true,
+      duracionMinutos: 60,
+      sedeId: sede.id,
+      capacidadMaxima: 1,
+      amenidades: ['Doble monitor 27"', '64 GB RAM', 'Ethernet 1 Gbps'],
+      minimoHorasReserva: 1,
+      maximoHorasReserva: 8,
+    },
+    {
+      id: 'espacio-sala-creativa-seed',
+      nombre: 'Sala Taller Creativo',
+      descripcion: 'Espacio modular con mesas abatibles para sesiones de ideación y sprint reviews.',
+      tipo: 'SALA' as const,
+      costoPorHora: 170,
+      activo: true,
+      duracionMinutos: 60,
+      sedeId: sede.id,
+      capacidadMaxima: 8,
+      amenidades: ['Pizarrón magnético', 'Notas adhesivas', 'WiFi 6'],
+      minimoHorasReserva: 1,
+      maximoHorasReserva: 4,
+    },
+    {
+      id: 'espacio-inactivo-seed',
+      nombre: 'Sala en Remodelación C-3',
+      descripcion: 'Espacio temporalmente deshabilitado para ampliación de red eléctrica y acústica.',
+      tipo: 'SALA' as const,
+      costoPorHora: 180,
+      activo: false,
+      duracionMinutos: 60,
+      sedeId: sede.id,
+      capacidadMaxima: 8,
+      amenidades: ['Aire acondicionado', 'Proyector HD'],
+      minimoHorasReserva: 1,
+      maximoHorasReserva: 4,
+    },
+  ];
+
+  for (const esp of espaciosAdicionales) {
+    await prisma.espacio.upsert({
+      where: { id: esp.id },
+      update: esp,
+      create: esp,
+    });
+  }
+
   await prisma.horarioAtencion.deleteMany({
     where: { espacioId: salaSinHorarios.id },
   });
 
-  for (const espacioId of [sala.id, cubiculo.id, pcStation.id]) {
+  const espaciosConHorario = [
+    sala.id,
+    cubiculo.id,
+    pcStation.id,
+    'espacio-sala-norte-seed',
+    'espacio-cubiculo-b2-seed',
+    'espacio-pc-dev-seed',
+    'espacio-sala-creativa-seed',
+    'espacio-inactivo-seed',
+  ];
+
+  for (const espacioId of espaciosConHorario) {
     for (let dia = 1; dia <= 5; dia++) {
       const horarioId = `horario-${espacioId}-d${dia}`;
       await prisma.horarioAtencion.upsert({
@@ -260,8 +371,41 @@ async function main() {
     }
   }
   console.log(
-    `Espacios listos: 3 con horarios L-V (08:00-20:00) + 1 activo sin horarios (${salaSinHorarios.id}).`,
+    `Espacios listos: 7 activos con horario + 1 activo sin horarios (${salaSinHorarios.id}) + 1 inactivo (espacio-inactivo-seed).`,
   );
+
+  const pagosSeed = [
+    {
+      id: 'pago-seed-completado-1',
+      montoTotal: 400,
+      estado: 'COMPLETADO' as const,
+      metodo: 'TARJETA' as const,
+      referencia: 'AUTH-CN-1001',
+    },
+    {
+      id: 'pago-seed-completado-2',
+      montoTotal: 90,
+      estado: 'COMPLETADO' as const,
+      metodo: 'EFECTIVO' as const,
+      referencia: 'CAJA-CN-0042',
+    },
+    {
+      id: 'pago-seed-pendiente-1',
+      montoTotal: 90,
+      estado: 'PENDIENTE' as const,
+      metodo: 'EFECTIVO' as const,
+      referencia: null,
+    },
+  ];
+
+  for (const pago of pagosSeed) {
+    await prisma.pago.upsert({
+      where: { id: pago.id },
+      update: pago,
+      create: pago,
+    });
+  }
+  console.log('Pagos de muestra listos: 2 COMPLETADO y 1 PENDIENTE (EFECTIVO).');
 
   const fechaFuturaMas3 = proximoDiaHabil(3);
   const fechaFuturaMas4 = proximoDiaHabil(4);
@@ -279,6 +423,7 @@ async function main() {
       estado: 'CONFIRMADA' as const,
       espacioId: sala.id,
       usuarioId: clienteLocal.id,
+      pagoId: 'pago-seed-completado-1',
       cantidadPersonas: 6,
       subtotal: 400,
     },
@@ -290,6 +435,7 @@ async function main() {
       estado: 'PENDIENTE' as const,
       espacioId: cubiculo.id,
       usuarioId: clienteLocal.id,
+      pagoId: null,
       cantidadPersonas: 1,
       subtotal: 120,
     },
@@ -301,6 +447,7 @@ async function main() {
       estado: 'CANCELADA' as const,
       espacioId: cubiculo.id,
       usuarioId: clienteLocal.id,
+      pagoId: null,
       cantidadPersonas: 1,
       subtotal: 60,
     },
@@ -312,6 +459,7 @@ async function main() {
       estado: 'COMPLETADA' as const,
       espacioId: pcStation.id,
       usuarioId: clienteLocal.id,
+      pagoId: 'pago-seed-completado-2',
       cantidadPersonas: 1,
       subtotal: 90,
     },
@@ -323,6 +471,7 @@ async function main() {
       estado: 'CONFIRMADA' as const,
       espacioId: sala.id,
       usuarioId: clienteSeeder.id,
+      pagoId: null,
       cantidadPersonas: 4,
       subtotal: 400,
     },
@@ -334,6 +483,7 @@ async function main() {
       estado: 'PENDIENTE' as const,
       espacioId: pcStation.id,
       usuarioId: clienteSeeder.id,
+      pagoId: 'pago-seed-pendiente-1',
       cantidadPersonas: 1,
       subtotal: 90,
     },

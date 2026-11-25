@@ -36,9 +36,17 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private fechaLocal(date: Date): string {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
   }
+  private fechaInicioInicial(): string {
+    const inicioMes = new Date(this.hoy.getFullYear(), this.hoy.getMonth(), 1);
+    const hace7Dias = new Date(this.hoy.getFullYear(), this.hoy.getMonth(), this.hoy.getDate() - 7);
+    return this.fechaLocal(hace7Dias < inicioMes ? hace7Dias : inicioMes);
+  }
+  private fechaFinInicial(): string {
+    return this.fechaLocal(new Date(this.hoy.getFullYear(), this.hoy.getMonth(), this.hoy.getDate() + 14));
+  }
   readonly periodoForm = this.fb.nonNullable.group({
-    fechaInicio: [this.fechaLocal(new Date(this.hoy.getFullYear(), this.hoy.getMonth(), 1)), Validators.required],
-    fechaFin: [this.fechaLocal(this.hoy), Validators.required],
+    fechaInicio: [this.fechaInicioInicial(), Validators.required],
+    fechaFin: [this.fechaFinInicial(), Validators.required],
   });
   readonly periodoError = signal<string | null>(null);
 
@@ -88,6 +96,10 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   formatCurrency(amount: number): string {
     return CURRENCY_FORMATTER.format(amount);
+  }
+
+  formatHours(minutes: number): string {
+    return Number((minutes / 60).toFixed(2)).toString();
   }
 
   formatDate(isoDate: string): string {

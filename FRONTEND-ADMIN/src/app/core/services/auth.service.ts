@@ -59,6 +59,24 @@ export class AuthService {
   }
 
   getToken(): string | null {
+    if (typeof localStorage !== 'undefined') {
+      const stored = localStorage.getItem(ADMIN_TOKEN_KEY);
+      if (!stored) {
+        if (this._token() !== null) {
+          this.logout('Tu sesión ya no está disponible. Inicia sesión nuevamente.');
+        }
+        return null;
+      }
+      if (!this.isTokenValid(stored)) {
+        this.logout('Tu sesión ha expirado o la credencial no es válida. Inicia sesión nuevamente.');
+        return null;
+      }
+      if (stored !== this._token()) {
+        this._token.set(stored);
+      }
+      return stored;
+    }
+
     const current = this._token();
     if (!current) {
       return null;
@@ -71,6 +89,37 @@ export class AuthService {
   }
 
   hasValidAdminSession(): boolean {
+    if (typeof localStorage !== 'undefined') {
+      const storedToken = localStorage.getItem(ADMIN_TOKEN_KEY);
+      const storedUserRaw = localStorage.getItem(ADMIN_USER_KEY);
+      if (!storedToken || !storedUserRaw) {
+        this.clearSession();
+        return false;
+      }
+      try {
+        const parsed = JSON.parse(storedUserRaw) as Partial<UsuarioAutenticado>;
+        const validUser =
+          typeof parsed.id === 'string' &&
+          typeof parsed.nombre === 'string' &&
+          typeof parsed.correo === 'string' &&
+          parsed.rol === 'ADMIN';
+        if (!validUser || !this.isTokenValid(storedToken)) {
+          this.clearSession();
+          return false;
+        }
+        if (this._token() !== storedToken) {
+          this._token.set(storedToken);
+        }
+        if (this._user()?.id !== parsed.id || this._user()?.rol !== 'ADMIN') {
+          this._user.set(parsed as UsuarioAutenticado);
+        }
+        return true;
+      } catch {
+        this.clearSession();
+        return false;
+      }
+    }
+
     const currentToken = this._token();
     const currentUser = this._user();
 

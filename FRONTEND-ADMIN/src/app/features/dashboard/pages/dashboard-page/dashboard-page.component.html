@@ -65,7 +65,7 @@
       <section class="rounded-2xl border border-stone-200 bg-white p-5" aria-label="Ocupación del período">
         <h3 class="text-lg font-semibold">Ocupación: {{ data.ocupacion.porcentaje }}%</h3>
         <p class="text-sm text-stone-600">Del {{ formatDate(data.periodo.fechaInicio) }} al {{ formatDate(data.periodo.fechaFin) }}:
-          {{ data.ocupacion.minutosOcupados / 60 }} horas ocupadas de {{ data.ocupacion.minutosDisponibles / 60 }} horas disponibles.</p>
+          {{ formatHours(data.ocupacion.minutosOcupados) }} horas ocupadas de {{ formatHours(data.ocupacion.minutosDisponibles) }} horas disponibles.</p>
         <p class="text-xs text-stone-500">Según horarios y espacios activos actuales, descontando bloqueos. Incluye reservas pendientes, confirmadas y completadas; excluye canceladas.</p>
         <p class="text-xs text-stone-500">Los ingresos corresponden a pagos completados de reservas del período, no a la fecha de cobro.</p>
       </section>

@@ -111,14 +111,15 @@ describe('apiResponseErrorInterceptor', () => {
     }
   });
 
-  it('conserva la sesión ante un 403 por falta de permisos', () => {
+  it('cierra sesión y redirige a /login ante 403 por falta de permisos en ruta protegida', () => {
     const navigate = vi.spyOn(router, 'navigate').mockResolvedValue(true);
     http.get(`${environment.apiBaseUrl}/dashboard/resumen`).subscribe({ error: () => undefined });
     httpMock.expectOne(`${environment.apiBaseUrl}/dashboard/resumen`).flush(
       { message: 'Acceso denegado' }, { status: 403, statusText: 'Forbidden' },
     );
-    expect(authService.isAuthenticated()).toBe(true);
-    expect(navigate).not.toHaveBeenCalled();
+    expect(authService.isAuthenticated()).toBe(false);
+    expect(authService.authNotice()).toContain('permisos de administrador');
+    expect(navigate).toHaveBeenCalledWith(['/login'], { replaceUrl: true });
   });
 
   it('normaliza arreglos de mensajes HTTP 400 de ValidationPipe', () => {

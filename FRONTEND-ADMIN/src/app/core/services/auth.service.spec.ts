@@ -178,4 +178,51 @@ describe('AuthService', () => {
     expect(freshService.hasValidAdminSession()).toBe(false);
     expect(localStorage.getItem(ADMIN_TOKEN_KEY)).toBeNull();
   });
+
+  it('cierra sesión y redirige a /login si admin_access_token en localStorage fue alterado a un valor inválido', () => {
+    const navigateSpy = vi.spyOn(router, 'navigate').mockResolvedValue(true);
+    const token = makeTestJwt({ sub: 'admin-1', rol: 'ADMIN', exp: futureExp });
+
+    service
+      .login({ correo: 'admin@seeder.com', contrasena: 'Admin123*' })
+      .subscribe();
+    httpMock.expectOne(`${environment.apiBaseUrl}/auth/login`).flush({
+      access_token: token,
+      usuario: {
+        id: 'admin-1',
+        nombre: 'Administrador',
+        correo: 'admin@seeder.com',
+        rol: 'ADMIN',
+      },
+    });
+
+    localStorage.setItem(ADMIN_TOKEN_KEY, 'token-corrupto');
+
+    expect(service.getToken()).toBeNull();
+    expect(service.isAuthenticated()).toBe(false);
+    expect(localStorage.getItem(ADMIN_TOKEN_KEY)).toBeNull();
+    expect(navigateSpy).toHaveBeenCalledWith(['/login'], { replaceUrl: true });
+  });
+
+  it('sincroniza desde localStorage si la firma del JWT fue alterada en DevTools para que el backend la rechace', () => {
+    const token = makeTestJwt({ sub: 'admin-1', rol: 'ADMIN', exp: futureExp });
+
+    service
+      .login({ correo: 'admin@seeder.com', contrasena: 'Admin123*' })
+      .subscribe();
+    httpMock.expectOne(`${environment.apiBaseUrl}/auth/login`).flush({
+      access_token: token,
+      usuario: {
+        id: 'admin-1',
+        nombre: 'Administrador',
+        correo: 'admin@seeder.com',
+        rol: 'ADMIN',
+      },
+    });
+
+    const alteredToken = `${token.slice(0, token.lastIndexOf('.'))}.firma-alterada`;
+    localStorage.setItem(ADMIN_TOKEN_KEY, alteredToken);
+
+    expect(service.getToken()).toBe(alteredToken);
+  });
 });
