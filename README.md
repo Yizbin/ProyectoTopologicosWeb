@@ -28,25 +28,27 @@ Desde la raiz:
 
 ### Paso 2. Configurar variables de entorno y URLs de servicio
 
-1. **`BACKEND/.env`** — Crea .env a partir de .env.example asegurando ambos orígenes en `ALLOWED_ORIGINS`:
+1. **`BACKEND/.env`** — Crea `.env` a partir de `.env.example` asegurando ambos orígenes en `ALLOWED_ORIGINS`:
 
-   - DATABASE_URL="mysql://usuario:password@localhost:3306/sistema_reservas"
-   - JWT_SECRET="super_secreto_jwt_para_sistema_reservas_2026"
-   - ALLOWED_ORIGINS="http://localhost:5173,http://localhost:4200"
+   - `DATABASE_URL="mysql://usuario:password@localhost:3306/sistema_reservas"`
+   - `JWT_SECRET="super_secreto_jwt_para_sistema_reservas_2026"`
+   - `PORT="3000"`
+   - `ALLOWED_ORIGINS="http://localhost:5173,http://localhost:4200"`
 
-2. **`FRONTEND/.env`** — Crea .env a partir de .env.example y verifica que apunte al backend:
+2. **`FRONTEND/.env`** — Crea `.env` a partir de `.env.example` y verifica que apunte al backend:
 
-  -  VITE_API_BASE_URL="http://localhost:3000"
+   - `VITE_API_BASE_URL="http://localhost:3000"`
 
-3. **`FRONTEND-ADMIN/`** — Ya viene preconfigurado apuntando a `http://localhost:3000` en 
-- FRONTEND-ADMIN/src/environments/environment.development.ts 
-- FRONTEND-ADMIN/src/environments/environment.ts
+3. **`FRONTEND-ADMIN/`** — Ya viene preconfigurado apuntando a `http://localhost:3000` en:
+   - `FRONTEND-ADMIN/src/environments/environment.development.ts`
+   - `FRONTEND-ADMIN/src/environments/environment.ts`
 
 ### Paso 3. Ejecutar migraciones de Prisma y poblar el seeder
 
-- cd BACKEND
-- npx prisma migrate dev
-- npx prisma db seed
+- `cd BACKEND`
+- `npx prisma generate`
+- `npx prisma migrate dev`
+- `npx prisma db seed`
 
 
 ### Paso 4. Levantar los 3 servidores simultáneamente (3 terminales)
@@ -68,17 +70,18 @@ Desde la raiz:
 
 ### Paso 5. Verificar accesos
 
-- **Portal Público del Cliente:** [http://localhost:5173]
-- **Panel Administrativo:** [http://localhost:4200]
-- **Documentación Swagger:** [http://localhost:3000/api/docs]
+- **Portal Público del Cliente:** [http://localhost:5173](http://localhost:5173)
+- **Panel Administrativo:** [http://localhost:4200](http://localhost:4200)
+- **Documentación Swagger:** [http://localhost:3000/api/docs](http://localhost:3000/api/docs)
 
 ---
 
 ## Cuentas Precargadas (`BACKEND/prisma/seed.ts`)
 
-- ADMIN - admin@sistema.local - Admin123*
-- ADMIN - admin@seeder.com - Admin123*
-- CLIENTE - cliente@sistema.local - Cliente123*
+- `ADMIN` — `admin@sistema.local` — `Admin123*`
+- `ADMIN` — `admin@seeder.com` — `Admin123*`
+- `CLIENTE` — `cliente@sistema.local` — `Cliente123*`
+- `CLIENTE` — `cliente@seeder.com` — `Cliente123*`
 
 ## Comandos de Verificación y Pruebas
 

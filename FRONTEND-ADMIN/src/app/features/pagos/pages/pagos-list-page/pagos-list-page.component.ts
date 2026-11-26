@@ -5,7 +5,6 @@ import { finalize } from 'rxjs';
 import {
   isApiError,
   type ApiError,
-  type EstadoPago,
   type MetodoPago,
   type PagoDetallado,
   type ResultadoPaginado,
@@ -60,19 +59,17 @@ export class PagosListPageComponent implements OnInit {
 
   readonly filterForm = this.fb.nonNullable.group({
     busqueda: [''],
-    estado: ['' as '' | EstadoPago],
     metodo: ['' as '' | MetodoPago],
   });
 
   private readonly appliedFilters = signal({
     busqueda: '',
-    estado: '' as '' | EstadoPago,
     metodo: '' as '' | MetodoPago,
   });
 
   readonly hasActiveFilters = computed(() => {
     const f = this.appliedFilters();
-    return Boolean(f.busqueda || f.estado || f.metodo);
+    return Boolean(f.busqueda || f.metodo);
   });
 
   ngOnInit(): void {
@@ -87,7 +84,6 @@ export class PagosListPageComponent implements OnInit {
     this.pagosService
       .listar({
         busqueda: filters.busqueda || undefined,
-        estado: filters.estado || undefined,
         metodo: filters.metodo || undefined,
         page: this.page(),
         limit: this.limit,
@@ -113,7 +109,6 @@ export class PagosListPageComponent implements OnInit {
     const raw = this.filterForm.getRawValue();
     this.appliedFilters.set({
       busqueda: raw.busqueda.trim(),
-      estado: raw.estado,
       metodo: raw.metodo,
     });
     this.page.set(1);
@@ -123,12 +118,10 @@ export class PagosListPageComponent implements OnInit {
   limpiarFiltros(): void {
     this.filterForm.reset({
       busqueda: '',
-      estado: '',
       metodo: '',
     });
     this.appliedFilters.set({
       busqueda: '',
-      estado: '',
       metodo: '',
     });
     this.page.set(1);

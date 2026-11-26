@@ -6,13 +6,26 @@
     </p>
   </div>
 
+  <div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#526e5c]/25 bg-[#e4e9e0]/50 px-4 py-3 text-sm text-[#23312b]">
+    <span>
+      Las reservaciones aún sin pago se cobran desde
+      <a
+        [routerLink]="['/reservaciones']"
+        [queryParams]="{ estado: 'pendiente' }"
+        class="ml-1 font-semibold text-[#23312b] underline decoration-[#526e5c]/60 underline-offset-4 hover:text-[#354b42]"
+      >
+        Reservaciones pendientes →
+      </a>
+    </span>
+  </div>
+
   <form
     [formGroup]="filterForm"
     (ngSubmit)="aplicarFiltros()"
     class="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm"
   >
-    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-      <div class="lg:col-span-2">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div class="sm:col-span-2">
         <label for="pago-busqueda" class="block text-xs font-semibold uppercase tracking-wide text-stone-600">
           Buscar
         </label>
@@ -20,25 +33,9 @@
           id="pago-busqueda"
           type="text"
           formControlName="busqueda"
-          placeholder="ID, referencia, cliente, correo o espacio…"
+          placeholder="Referencia, cliente o espacio…"
           class="mt-1.5 block w-full rounded-lg border border-stone-300 px-3 py-2 text-sm text-stone-900 placeholder:text-stone-400 focus:border-[#23312b] focus:outline-none focus:ring-2 focus:ring-[#23312b]/20"
         />
-      </div>
-
-      <div>
-        <label for="pago-estado" class="block text-xs font-semibold uppercase tracking-wide text-stone-600">
-          Estado
-        </label>
-        <select
-          id="pago-estado"
-          formControlName="estado"
-          class="mt-1.5 block w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm text-stone-900 focus:border-[#23312b] focus:outline-none focus:ring-2 focus:ring-[#23312b]/20"
-        >
-          <option value="">Todos</option>
-          <option value="PENDIENTE">Pendiente</option>
-          <option value="COMPLETADO">Completado</option>
-          <option value="REEMBOLSADO">Reembolsado</option>
-        </select>
       </div>
 
       <div>
@@ -71,7 +68,7 @@
         type="submit"
         class="rounded-lg bg-[#23312b] px-4 py-2 text-sm font-semibold text-white hover:bg-[#354b42]"
       >
-        Filtrar pagos
+        Aplicar
       </button>
     </div>
   </form>

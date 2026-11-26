@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import {
   isApiError,
@@ -19,6 +19,13 @@ import { EspaciosAdminService } from '../../../espacios/services/espacios-admin.
 import { ReservacionesAdminService } from '../../services/reservaciones-admin.service';
 
 type AgendaPreset = 'todas' | 'hoy' | 'proximos7' | null;
+
+const ESTADOS_RESERVACION_VALIDOS = new Set<EstadoReservacion>([
+  'pendiente',
+  'confirmada',
+  'completada',
+  'cancelada',
+]);
 
 const CURRENCY_FORMATTER = new Intl.NumberFormat('es-MX', {
   style: 'currency',
@@ -57,6 +64,7 @@ function getLocalIsoDate(offsetDays = 0): string {
 })
 export class ReservacionesListPageComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
+  private readonly route = inject(ActivatedRoute);
   private readonly reservacionesService = inject(ReservacionesAdminService);
   private readonly espaciosService = inject(EspaciosAdminService);
 
@@ -96,6 +104,18 @@ export class ReservacionesListPageComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    const estadoParam = this.route.snapshot.queryParamMap.get('estado');
+    if (
+      estadoParam &&
+      ESTADOS_RESERVACION_VALIDOS.has(estadoParam as EstadoReservacion)
+    ) {
+      const estadoInicial = estadoParam as EstadoReservacion;
+      this.filterForm.controls.estado.setValue(estadoInicial);
+      this.appliedFilters.update((prev) => ({
+        ...prev,
+        estado: estadoInicial,
+      }));
+    }
     this.cargarEspacios();
     this.cargarReservaciones();
   }
