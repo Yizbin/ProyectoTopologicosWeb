@@ -39,6 +39,7 @@ async function main() {
       telefono: '555-0109',
       contrasena: passwordAdmin,
       rol: 'ADMIN',
+      activo: true,
     },
     create: {
       id: 'usr-admin-local-seed',
@@ -47,6 +48,7 @@ async function main() {
       telefono: '555-0109',
       contrasena: passwordAdmin,
       rol: 'ADMIN',
+      activo: true,
     },
   });
   console.log(`Usuario ADMIN principal listo: ${adminLocal.correo} (pass: Admin123*)`);
@@ -58,6 +60,7 @@ async function main() {
       telefono: '555-0101',
       contrasena: passwordAdmin,
       rol: 'ADMIN',
+      activo: true,
     },
     create: {
       id: 'usr-admin-seed',
@@ -66,6 +69,7 @@ async function main() {
       telefono: '555-0101',
       contrasena: passwordAdmin,
       rol: 'ADMIN',
+      activo: true,
     },
   });
   console.log(`Usuario ADMIN secundario listo: ${admin.correo} (pass: Admin123*)`);
@@ -78,6 +82,7 @@ async function main() {
       telefono: '555-0100',
       contrasena: passwordCliente,
       rol: 'CLIENTE',
+      activo: true,
     },
     create: {
       id: 'usr-cliente-local-seed',
@@ -86,6 +91,7 @@ async function main() {
       telefono: '555-0100',
       contrasena: passwordCliente,
       rol: 'CLIENTE',
+      activo: true,
     },
   });
   console.log(`Usuario CLIENTE listo: ${clienteLocal.correo} (pass: Cliente123*)`);
@@ -97,6 +103,7 @@ async function main() {
       telefono: '555-0102',
       contrasena: passwordCliente,
       rol: 'CLIENTE',
+      activo: true,
     },
     create: {
       id: 'usr-cliente-seed',
@@ -105,6 +112,7 @@ async function main() {
       telefono: '555-0102',
       contrasena: passwordCliente,
       rol: 'CLIENTE',
+      activo: true,
     },
   });
   console.log(`Usuario CLIENTE secundario listo: ${clienteSeeder.correo} (pass: Cliente123*)`);

@@ -23,8 +23,7 @@ export interface UsuarioPublico {
   correo: string;
   telefono: string;
   rol: RolUsuario;
-  /** Ausente en respuestas antiguas: se interpreta como activo. */
-  activo?: boolean;
+  activo: boolean;
 }
 
 export type UsuarioAutenticado = Pick<UsuarioPublico, 'id' | 'nombre' | 'correo' | 'rol'>;

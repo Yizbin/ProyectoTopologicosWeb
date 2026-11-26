@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { AuthService } from './auth.service.js';
 import { Usuario, RolUsuario } from '../dominio/entidades/usuario.entity.js';
@@ -113,5 +113,29 @@ describe('AuthService', () => {
     expect(resultado.access_token).toBe('mocked_jwt_token_123');
     expect(resultado.usuario.correo).toBe('ana@correo.com');
     expect(mockUsuariosService.crearUsuario).toHaveBeenCalled();
+  });
+
+  it('debe rechazar el login con ForbiddenException cuando el usuario está desactivado (activo === false)', async () => {
+    const rawPassword = 'password123';
+    const hashedPassword = await bcrypt.hash(rawPassword, 10);
+    const usuarioInactivo = new Usuario(
+      'user-inactivo',
+      'Inactivo',
+      'inactivo@correo.com',
+      '555-0000',
+      hashedPassword,
+      RolUsuario.CLIENTE,
+      false,
+    );
+
+    mockUsuariosService.buscarPorCorreo.mockResolvedValue(usuarioInactivo);
+
+    await expect(
+      authService.login({
+        correo: 'inactivo@correo.com',
+        contrasena: rawPassword,
+      }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(mockJwtService.signAsync).not.toHaveBeenCalled();
   });
 });

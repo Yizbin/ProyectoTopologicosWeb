@@ -22,6 +22,7 @@ describe('ReservacionFormPageComponent', () => {
       correo: 'laura@correo.com',
       telefono: '5551112233',
       rol: 'CLIENTE',
+      activo: true,
     },
   ];
 

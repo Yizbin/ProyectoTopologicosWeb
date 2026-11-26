@@ -12,12 +12,14 @@ import { UsuariosAdminService } from '../../services/usuarios-admin.service';
 import { UsuarioDetailPageComponent } from './usuario-detail-page.component';
 
 describe('UsuarioDetailPageComponent', () => {
+  const cambiarEstadoSpy = vi.fn();
   const mockUsuario: UsuarioPublico = {
     id: 'usr-1',
     nombre: 'Laura Mendoza',
     correo: 'laura@correo.com',
     telefono: '5551234567',
     rol: 'CLIENTE',
+    activo: true,
   };
 
   const mockEspacios: EspacioBuscado[] = [
@@ -65,6 +67,9 @@ describe('UsuarioDetailPageComponent', () => {
   ];
 
   beforeEach(async () => {
+    cambiarEstadoSpy.mockReset();
+    cambiarEstadoSpy.mockReturnValue(of({ ...mockUsuario, activo: false }));
+
     await TestBed.configureTestingModule({
       imports: [UsuarioDetailPageComponent],
       providers: [
@@ -79,6 +84,7 @@ describe('UsuarioDetailPageComponent', () => {
           provide: UsuariosAdminService,
           useValue: {
             obtenerPorId: () => of(mockUsuario),
+            cambiarEstado: cambiarEstadoSpy,
           },
         },
         {
@@ -121,5 +127,34 @@ describe('UsuarioDetailPageComponent', () => {
     expect(crearLink!.getAttribute('href')).toContain(
       '/reservaciones/nueva?usuarioId=usr-1',
     );
+  });
+
+  it('abre ConfirmModalComponent para desactivar usuario y actualiza el estado en pantalla', () => {
+    const fixture = TestBed.createComponent(UsuarioDetailPageComponent);
+    fixture.detectChanges();
+
+    const comp = fixture.componentInstance;
+    const host = fixture.nativeElement as HTMLElement;
+
+    const btnDesactivar = Array.from(host.querySelectorAll('button')).find((b) =>
+      b.textContent?.includes('Desactivar cuenta'),
+    );
+    expect(btnDesactivar).toBeTruthy();
+
+    btnDesactivar!.click();
+    fixture.detectChanges();
+
+    expect(comp.confirmandoEstado()).toBe(true);
+    expect(host.textContent).toContain('Sí, desactivar');
+
+    const btnConfirmar = Array.from(host.querySelectorAll('button')).find(
+      (b) => b.textContent?.trim() === 'Sí, desactivar',
+    );
+    btnConfirmar!.click();
+    fixture.detectChanges();
+
+    expect(cambiarEstadoSpy).toHaveBeenCalledWith('usr-1', false);
+    expect(comp.estaActivo()).toBe(false);
+    expect(host.textContent).toContain('Inactivo');
   });
 });

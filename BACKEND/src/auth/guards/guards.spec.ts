@@ -1,5 +1,10 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ExecutionContext, UnauthorizedException, ForbiddenException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  UnauthorizedException,
+  ForbiddenException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard.js';
 import { RolesGuard } from './roles.guard.js';
@@ -9,7 +14,7 @@ describe('Security Guards', () => {
   describe('JwtAuthGuard', () => {
     const guard = new JwtAuthGuard();
 
-    it('debe lanzar UnauthorizedException (HTTP 401) si no hay usuario o hay error', () => {
+    it('debe lanzar UnauthorizedException (HTTP 401) si no hay usuario o recibe HttpException de autenticación', () => {
       const mockContext = {} as ExecutionContext;
 
       expect(() => {
@@ -17,8 +22,32 @@ describe('Security Guards', () => {
       }).toThrow(UnauthorizedException);
 
       expect(() => {
-        guard.handleRequest(new Error('Token expired'), null, null, mockContext);
-      }).toThrow(UnauthorizedException);
+        guard.handleRequest(
+          new UnauthorizedException('La cuenta ya no está activa. Inicia sesión nuevamente.'),
+          null,
+          null,
+          mockContext,
+        );
+      }).toThrow('La cuenta ya no está activa. Inicia sesión nuevamente.');
+    });
+
+    it('NO filtra errores internos ni de Prisma como 401; responde 500 genérico', () => {
+      const mockContext = {} as ExecutionContext;
+      let captured: unknown;
+      try {
+        guard.handleRequest(
+          new Error("Unknown field 'activo' for select statement on model 'Usuario'."),
+          null,
+          null,
+          mockContext,
+        );
+      } catch (err) {
+        captured = err;
+      }
+
+      expect(captured).toBeInstanceOf(InternalServerErrorException);
+      expect((captured as Error).message).not.toContain('activo');
+      expect((captured as Error).message).not.toContain('Usuario');
     });
 
     it('debe devolver el usuario si la autenticación por token es válida', () => {

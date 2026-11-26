@@ -1,4 +1,10 @@
-import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  ExecutionContext,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 
 @Injectable()
@@ -10,14 +16,20 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     _context?: ExecutionContext,
     _status?: any,
   ): TUser {
-    if (err || !user) {
-      const mensaje =
-        err?.message ||
-        (info?.message
-          ? `No autorizado: ${info.message}.`
-          : 'No autorizado. Token no proporcionado o inválido.');
+    if (err) {
+      if (err instanceof HttpException) {
+        throw err;
+      }
+      throw new InternalServerErrorException('No fue posible validar la sesión en este momento.');
+    }
+
+    if (!user) {
+      const mensaje = info?.message
+        ? `No autorizado: ${info.message}.`
+        : 'No autorizado. Token no proporcionado o inválido.';
       throw new UnauthorizedException(mensaje);
     }
+
     return user;
   }
 }

@@ -52,6 +52,7 @@ describe('ReservacionDetailPageComponent', () => {
     correo: 'carlos@correo.com',
     telefono: '5550001122',
     rol: 'CLIENTE',
+    activo: true,
   };
 
   const espacioMock: Espacio = {

@@ -405,16 +405,22 @@ describe('Control de Accesos (Roles, Guards y HTTP Status)', () => {
       expect((await llamar(generarToken(RolUsuario.ADMIN))).status).toBe(200);
     });
 
-    it('PATCH /usuarios/:id y /usuarios/:id/estado son exclusivos de ADMIN y nunca devuelven contraseña', async () => {
+    it('PATCH /usuarios/:id y /usuarios/:id/estado son exclusivos de ADMIN (401/403/200) y nunca devuelven contraseña', async () => {
       const tokenCliente = generarToken(RolUsuario.CLIENTE);
       const tokenAdmin = generarToken(RolUsuario.ADMIN);
 
+      expect((await request(app.getHttpServer()).patch('/usuarios/u1/estado').send({ activo: false })).status).toBe(401);
       expect((await request(app.getHttpServer()).patch('/usuarios/u1').set('Authorization', `Bearer ${tokenCliente}`).send({ nombre: 'X' })).status).toBe(403);
       expect((await request(app.getHttpServer()).patch('/usuarios/u1/estado').set('Authorization', `Bearer ${tokenCliente}`).send({ activo: false })).status).toBe(403);
 
       const editado = await request(app.getHttpServer()).patch('/usuarios/u1').set('Authorization', `Bearer ${tokenAdmin}`).send({ nombre: 'Editado' });
       expect(editado.status).toBe(200);
       expect(editado.body.contrasena).toBeUndefined();
+
+      const desactivado = await request(app.getHttpServer()).patch('/usuarios/u1/estado').set('Authorization', `Bearer ${tokenAdmin}`).send({ activo: false });
+      expect(desactivado.status).toBe(200);
+      expect(desactivado.body.activo).toBe(false);
+      expect(desactivado.body.contrasena).toBeUndefined();
 
       const invalido = await request(app.getHttpServer()).patch('/usuarios/u1/estado').set('Authorization', `Bearer ${tokenAdmin}`).send({ activo: 'quizá' });
       expect(invalido.status).toBe(400);
